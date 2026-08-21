@@ -45,7 +45,8 @@
         "ec2:DescribeSubnets",
         "ec2:DescribeVpcs",
         "ec2:DescribeImages",
-        "ec2:DescribeVpcAttribute"
+        "ec2:DescribeVpcAttribute",
+        "ec2:DescribeInstanceTypes"
       ],
       "Resource": "*"
     },
