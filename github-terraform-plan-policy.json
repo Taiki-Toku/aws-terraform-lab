@@ -39,18 +39,7 @@
     {
       "Sid": "TerraformReadOnlyEC2",
       "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeInstances",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeVpcs",
-        "ec2:DescribeImages",
-        "ec2:DescribeVpcAttribute",
-        "ec2:DescribeInstanceTypes",
-        "ec2:DescribeTags",
-        "ec2:DescribeInstanceAttribute",
-        "ec2:DescribeVolumes"
-      ],
+      "Action": "ec2:Describe*",
       "Resource": "*"
     },
     {
