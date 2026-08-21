@@ -47,7 +47,8 @@
         "ec2:DescribeImages",
         "ec2:DescribeVpcAttribute",
         "ec2:DescribeInstanceTypes",
-        "ec2:DescribeTags"
+        "ec2:DescribeTags",
+        "ec2:DescribeInstanceAttribute"
       ],
       "Resource": "*"
     },
