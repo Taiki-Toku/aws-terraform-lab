@@ -4,6 +4,13 @@ terraform {
       source = "hashicorp/aws"
     }
   }
+
+  backend "s3" {
+    bucket       = "aws-lab-tfstate-984774734569-apne1"
+    key          = "aws-lab/terraform.tfstate"
+    region       = "ap-northeast-1"
+    use_lockfile = true
+  }
 }
 
 provider "aws" {

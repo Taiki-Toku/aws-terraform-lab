@@ -2,10 +2,13 @@ name: Terraform CI
 
 on:
   push:
+    branches:
+      - master
   pull_request:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   terraform:
@@ -20,11 +23,32 @@ jobs:
         with:
           terraform_version: "1.15.9"
 
-      - name: Terraform Init
-        run: terraform init -backend=false
-
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
+      - name: Configure AWS Credentials
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: arn:aws:iam::984774734569:role/aws-lab-github-terraform-role
+          aws-region: ap-northeast-1
+          allowed-account-ids: "984774734569"
+
+      - name: Verify AWS Identity
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: aws sts get-caller-identity
+
+      - name: Terraform Init - Remote State
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: terraform init
+
+      - name: Terraform Init - No Backend
+        if: github.event_name == 'pull_request'
+        run: terraform init -backend=false
+
       - name: Terraform Validate
         run: terraform validate
+
+      - name: Terraform Plan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: terraform plan
