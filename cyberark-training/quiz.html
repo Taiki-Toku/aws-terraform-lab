@@ -12,7 +12,7 @@
 <div class="ch-hero">
   <div class="eyebrow">実践フェーズ｜総まとめ練習問題</div>
   <h1>総まとめ練習問題</h1>
-  <p class="lead">全15章から出題します。<strong>出題順も選択肢の順番も毎回ランダム</strong>です。選択肢の位置ではなく、内容で答えを覚えましょう。</p>
+  <p class="lead">全16章・100問以上の問題バンクから出題します。<strong>出題順も選択肢の順番も毎回ランダム</strong>です。選択肢の位置ではなく、内容で答えを覚えましょう。</p>
   <h4>このフェーズの全体像</h4>
   <p class="small">出題範囲と問題数を選ぶ → 1問ずつ解答（即時に正誤と解説）→ 結果と章別の正答率 → 間違えた問題だけ再挑戦</p>
   <h4>このフェーズのゴール</h4>
@@ -34,8 +34,11 @@
         <option value="1-5">基礎・コア構成（第1〜5章）</option>
         <option value="6-9">設計・設定（第6〜9章）</option>
         <option value="10-12">利用・監視（第10〜12章）</option>
-        <option value="13-15">発展・実践（第13〜15章）</option>
+        <option value="13-16">発展・実践・ハンズオン（第13〜16章）</option>
       </select>
+    </label>
+    <label>難易度
+      <select id="q-level"><option value="all">すべて</option><option value="1">基礎のみ</option><option value="2">応用・シナリオのみ</option></select>
     </label>
     <p class="small muted" id="bank-info" style="margin:0"></p>
     <div><button type="button" class="btn" id="start">ランダム出題で開始</button></div>
@@ -82,18 +85,17 @@
   BANK.forEach(function (q, i) { q.id = i; });
 
   function pool() {
-    var r = $("q-range").value;
-    if (r === "all") return BANK;
-    var p = r.split("-").map(Number);
-    return BANK.filter(function (q) { return q.c >= p[0] && q.c <= p[1]; });
+    var r = $("q-range").value, lv = $("q-level").value, p = r === "all" ? [1, 99] : r.split("-").map(Number);
+    return BANK.filter(function (q) { return q.c >= p[0] && q.c <= p[1] && (lv === "all" || String(q.d) === lv); });
   }
   function info() {
     var n = pool().length;
     $("bank-info").textContent = "この範囲の問題数：" + n + "問（問題数がこれより多い設定の場合は全問を出題）";
     var b = S.get("ca-quiz-best", null);
-    $("best").textContent = b === null ? "" : "これまでの自己ベスト（全章・20問以上）：" + b + "%";
+    $("best").innerHTML = (b === null ? "" : "これまでの自己ベスト（全章・全難易度・20問以上）：" + b + "%　") + '<a href="report.html">学習記録・提出</a>';
   }
   $("q-range").addEventListener("change", info);
+  $("q-level").addEventListener("change", info);
   info();
 
   function start(list) {
@@ -101,7 +103,7 @@
       var opts = q.a.map(function (t, i) { return { t: t, ok: i === 0 }; });
       return { src: q, opts: shuffle(opts), picked: null };
     });
-    state = { qs: qs, i: 0, full: $("q-range").value === "all" && qs.length >= 20 };
+    state = { qs: qs, i: 0, full: $("q-range").value === "all" && $("q-level").value === "all" && qs.length >= 20 };
     $("setup").hidden = true; $("result").hidden = true; $("play").hidden = false;
     render();
     $("play").scrollIntoView({ block: "start" });
@@ -115,7 +117,7 @@
     var cur = state.qs[state.i], q = cur.src, total = state.qs.length;
     $("bar").style.width = Math.round(state.i / total * 100) + "%";
     $("pos").textContent = "第 " + (state.i + 1) + " 問 / 全 " + total + " 問";
-    var h = '<div class="q-card"><div class="q-top"><span>出典：第' + q.c + "章 " + esc(CH[q.c - 1].t) + "</span><span>Q" + (state.i + 1) + '</span></div><div class="q-text">' + esc(q.q) + '</div><div class="q-opts">';
+    var h = '<div class="q-card"><div class="q-top"><span>出典：第' + q.c + "章 " + esc(CH[q.c - 1].t) + "</span><span>" + (q.d === 2 ? '<span class="chip warn">応用</span>' : '<span class="chip">基礎</span>') + " Q" + (state.i + 1) + '</span></div><div class="q-text">' + esc(q.q) + '</div><div class="q-opts">';
     cur.opts.forEach(function (o, i) { h += '<button type="button" class="opt-btn" data-i="' + i + '"><span class="mk">' + MK[i] + "</span><span>" + esc(o.t) + "</span></button>"; });
     h += '</div><div id="after"></div></div>';
     $("qbox").innerHTML = h;
@@ -154,6 +156,11 @@
     });
     var pct = Math.round(okN / qs.length * 100);
     if (state.full) { var b = S.get("ca-quiz-best", 0); if (pct > b) S.set("ca-quiz-best", pct); }
+    var hist = S.get("ca-quiz-history", []);
+    var chs = {}; Object.keys(byCh).forEach(function (c) { chs[c] = [byCh[c].ok, byCh[c].n]; });
+    hist.push({ at: new Date().toISOString(), range: $("q-range").value, level: $("q-level").value, n: qs.length, ok: okN, pct: pct, byCh: chs,
+      wrong: qs.filter(function (x) { return !x.opts[x.picked].ok; }).map(function (x) { return x.src.q; }) });
+    S.set("ca-quiz-history", hist.slice(-50));
     var msg = pct >= 90 ? "素晴らしい！実務に入る準備ができています。" : pct >= 80 ? "合格ライン到達！苦手な章を仕上げましょう。" : pct >= 60 ? "あと一歩。正答率の低い章を復習しましょう。" : "まずは各章の振り返り問題から復習しましょう。";
     var h = '<div class="card"><div class="eyebrow">RESULT</div><div class="score-big">' + pct + '<span style="font-size:20px">%</span></div><p>' + okN + " / " + qs.length + " 問正解｜" + msg + "</p>";
     h += "<h4>章別の正答率</h4>";

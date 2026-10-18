@@ -32,7 +32,7 @@
 {"w":820,"h":200,"title":"研修フェーズの流れ","caption":"図：研修の進め方（左から右へ）",
 "nodes":[
 {"id":"a","x":10,"y":60,"w":170,"h":80,"label":"① はじめに","sub":"出典・用語集\n全体像とゴール","kind":"user"},
-{"id":"b","x":220,"y":60,"w":170,"h":80,"label":"② 学び","sub":"全15章\n＋章末振り返り","kind":"comp"},
+{"id":"b","x":220,"y":60,"w":170,"h":80,"label":"② 学び","sub":"全16章（ハンズオン含む）\n＋章末振り返り","kind":"comp"},
 {"id":"c","x":430,"y":60,"w":170,"h":80,"label":"③ ケーススタディ","sub":"基本3題＋応用3題\n部分点あり採点","kind":"vault"},
 {"id":"d","x":640,"y":60,"w":170,"h":80,"label":"④ 総まとめ","sub":"ランダム出題\n苦手分析","kind":"target"}],
 "edges":[{"from":"a","to":"b"},{"from":"b","to":"c"},{"from":"c","to":"d"}]}
@@ -42,9 +42,10 @@
 <thead><tr><th>フェーズ</th><th>内容</th><th>ゴール（できるようになること）</th><th>目安時間</th></tr></thead>
 <tbody>
 <tr><td>① はじめに</td><td><a href="references.html">出典・公式ナレッジ</a>／<a href="glossary.html">用語集</a>／本ページ</td><td>学習の進め方と、困ったときに調べる場所（公式ドキュメント等）がわかる</td><td>30分</td></tr>
-<tr><td>② 学び</td><td>全15章（基礎→製品→設計→運用）</td><td>各コンポーネントの役割・設計の考え方・運用の勘所を自分の言葉で説明できる</td><td>15〜20時間</td></tr>
+<tr><td>② 学び</td><td>全16章（基礎→製品→設計→運用→ハンズオン）</td><td>各コンポーネントの役割・設計の考え方・運用の勘所を自分の言葉で説明できる</td><td>15〜20時間＋ハンズオン6〜8時間</td></tr>
 <tr><td>③ ケーススタディ</td><td><a href="cases.html">基本編3題・応用編3題</a></td><td>架空企業の要件から、設計判断・トラブル切り分け・インシデント初動を考えられる</td><td>4〜6時間</td></tr>
 <tr><td>④ 総まとめ練習問題</td><td><a href="quiz.html">ランダム出題の問題バンク</a></td><td>正答率80%以上を安定して取れる（出題順・選択肢順は毎回変わります）</td><td>1〜2時間×数回</td></tr>
+<tr><td>⑤ 記録・提出</td><td><a href="report.html">成績・学習記録</a>／<a href="trainer.html">講師用ページ</a></td><td>学習記録を講師へ提出し、記述問題の講師採点・コメントを受け取る</td><td>—</td></tr>
 </tbody></table></div>
 
 <div class="callout goal"><span class="ttl">研修修了時の到達目標</span>
@@ -56,7 +57,7 @@
 <li>アプリケーションのシークレット管理、ZSP/JIT（ゼロ・スタンディング特権／ジャストインタイム）などモダンな領域の製品の位置づけを説明できる。</li>
 </ol></div>
 
-<h2>学びフェーズ：全15章</h2>
+<h2>学びフェーズ：全16章</h2>
 <p class="muted small">カードをクリックすると各章へ移動します。章末の「この章を完了にする」を押すと進捗に反映されます。</p>
 <div class="grid" id="chapter-cards"></div>
 
@@ -69,7 +70,7 @@
 <tr><td>設計・設定</td><td>6〜9章</td><td>Safe・アカウント・プラットフォーム・パスワード自動管理・アクセス制御ポリシー</td></tr>
 <tr><td>利用・監視</td><td>10〜12章</td><td>セッション管理、認証連携、脅威検知と監査</td></tr>
 <tr><td>発展</td><td>13〜14章</td><td>アプリのシークレット管理、ZSP/JITとモダンアクセス</td></tr>
-<tr><td>実践</td><td>15章</td><td>設計思想・段階導入・日常運用・障害対応</td></tr>
+<tr><td>実践</td><td>15〜16章</td><td>設計思想・段階導入・日常運用・障害対応、検証環境でのハンズオン</td></tr>
 </tbody></table></div>
 
 <h2>この教材の使い方</h2>
@@ -108,6 +109,7 @@
 <tr><td><code>hk-psm01 / 02</code></td><td>10.10.20.41 / .42</td><td>PSM（Windows/RDP系セッション管理）</td></tr>
 <tr><td><code>hk-psmp01</code></td><td>10.10.20.51</td><td>PSM for SSH（Linux/SSH系セッション管理）</td></tr>
 <tr><td><code>hk-pta01</code></td><td>10.10.20.61</td><td>PTA（特権脅威分析）</td></tr>
+<tr><td><code>lab-*</code>（検証環境）</td><td>10.99.0.0/16</td><td>第16章ハンズオン用（lab.hikari.example）</td></tr>
 <tr><td><code>hk-ad01</code></td><td>10.30.0.10</td><td>Active Directory ドメインコントローラ</td></tr>
 <tr><td><code>hk-web01</code></td><td>10.30.1.11</td><td>Linux Webサーバ（root, opsadmin）</td></tr>
 <tr><td><code>hk-web02</code></td><td>10.40.1.12</td><td>AWS上のLinux Webサーバ（第14章 SIAの例）</td></tr>

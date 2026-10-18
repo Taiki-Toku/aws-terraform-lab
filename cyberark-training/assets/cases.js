@@ -143,6 +143,27 @@
     return Math.min(pts, s);
   }
 
+  // 回答内容を記録用に取り出す（成績・学習記録ページ／講師採点で使用）
+  function response(q) {
+    var type = q.getAttribute("data-type"), r = { type: type, pts: Number(q.getAttribute("data-pts")) || 0, q: (q.querySelector(".cq-h") || {}).textContent || "" };
+    r.q = r.q.replace(/\d+点.*$/, "").trim();
+    if (type === "single" || type === "multi") {
+      r.resp = Array.prototype.slice.call(q.querySelectorAll(".opt-btn.sel")).map(function (b) { return b.textContent.trim(); });
+    } else if (type === "order" || type === "match") {
+      r.resp = Array.prototype.slice.call(q.querySelectorAll(".order-row")).map(function (row) {
+        var sel = row.querySelector("select");
+        return (sel.value === "" ? "（未選択）" : sel.options[sel.selectedIndex].text) + "：" + row.querySelector("span").textContent;
+      });
+    } else if (type === "essay") {
+      r.text = (q.querySelector("textarea") || {}).value || "";
+      r.rubric = Array.prototype.slice.call(q.querySelectorAll(".rubric li")).map(function (li) {
+        return { item: li.querySelector("span").textContent.replace(/\s*\d+点$/, ""), pts: Number(li.querySelector("input").value), checked: li.querySelector("input").checked };
+      });
+    }
+    r.got = type === "essay" ? essayScore(q) : Number(q.getAttribute("data-got")) || 0;
+    return r;
+  }
+
   function rank(p) { return p >= 90 ? "S" : p >= 75 ? "A" : p >= 60 ? "B" : "C"; }
 
   function initCase(c) {
@@ -171,6 +192,10 @@
         var pct = max ? Math.round(sum / max * 100) : 0;
         result.innerHTML = "<strong>" + sum + " / " + max + " 点（" + pct + "%）ランク " + rank(pct) + "</strong>";
         var b = store.get("ca-case-" + id, 0); if (pct > b) store.set("ca-case-" + id, pct);
+        var recs = store.get("ca-case-records", {});
+        recs[id] = { title: c.querySelector("summary h3").textContent, at: new Date().toISOString(), score: sum, max: max, pct: pct,
+          qs: Array.prototype.slice.call(body.querySelectorAll(".cq")).map(response) };
+        store.set("ca-case-records", recs);
         paintSummary();
       }
       bar.onclick = function (e) {

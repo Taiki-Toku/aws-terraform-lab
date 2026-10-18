@@ -54,28 +54,50 @@
 </div>
 
 <div class="table-wrap"><table>
-<thead><tr><th>主な記述</th><th>章</th><th>照合した情報</th><th>判定</th></tr></thead>
+<thead><tr><th>主な記述</th><th>章</th><th>照合した情報</th><th>判定</th><th>最終確認日</th></tr></thead>
 <tbody>
-<tr><td>Palo Alto NetworksによるCyberArk買収は2026年2月11日に完了</td><td>2</td><td>Palo Alto Networks 10-Q（SEC提出書類）、複数の報道</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>2026年5月、CyberArk技術を基盤とする新ブランド「Idira」発表。CyberArk名も併存</td><td>2</td><td>CyberArk公式サイトの表記（“CyberArk is now Idira”）、複数の報道</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Conjur Cloud → Secrets Manager, SaaS／Conjur Enterprise → Secrets Manager, Self-Hosted に改称</td><td>2, 13</td><td>CyberArk公式「Product Name Updates」</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>PAM Self-Hosted v15 は2025年12月15日リリース、Standard-Term Support（STS）</td><td>2, 15</td><td>公式告知を転載した実務者記事（公式ページは直接未確認）</td><td><span class="chip warn">要確認</span></td></tr>
-<tr><td>Vault の通信ポートは TCP 1858（既定）</td><td>3, 4</td><td>公式インストールパラメータ表の転載、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Vaultはインストール時にWindowsファイアウォールを制御し、既定で1858のみ許可。ドメイン非参加・専用サーバが原則</td><td>4</td><td>公式GitHub CYBRHardeningCheck（Vault_DomainJoined チェック）、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Masterユーザーは全Safeに自動で全権限を持つ緊急用ユーザー、ログインにはリカバリキー（Master CD）が必要</td><td>4</td><td>CyberArk研修資料の公開スライド、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Safe権限「List / Use / Retrieve accounts」の意味</td><td>6</td><td>大学の公開手順書（Privilege Cloud）、連携ベンダー公式ドキュメント、psPASモジュール</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>CPMは変更・検証・調整（Reconcile）を行い、調整用アカウントはプラットフォームまたはアカウント単位で設定</td><td>7, 8</td><td>Ansible公式コレクション文書、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Master Policy：理由入力・二重承認・排他パスワード・ワンタイムパスワード・セッション記録</td><td>9</td><td>複数の構築記事・ラボ記録</td><td><span class="chip ok">一致</span>（既定値はバージョンで要確認）</td></tr>
-<tr><td>PSMはPSMConnectでRDP接続を受け、シャドウユーザーに切り替えて接続コンポーネントを起動</td><td>10</td><td>複数の実務者記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>PTAは資格情報窃取の疑い・管理外特権アクセス等を検知し、自動ローテーションやセッション停止で対応可能</td><td>12</td><td>CyberArk公式GitHub、SIEM連携ベンダー文書、CyberArk公式ブログ</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>CCPはエージェントレスのWebサービス、CPはローカルキャッシュを持つエージェント型</td><td>13</td><td>連携ベンダー公式ドキュメント（UiPath等）、CyberArk公式発表</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>Secrets HubはAWS等のクラウドネイティブなシークレットストアとPAMを同期</td><td>13</td><td>CyberArk公式ブログ（2025年7月）、第三者比較記事</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>SIA（旧DPA）はサーバ・DB・KubernetesへのJIT・一時的な資格情報でのアクセスを提供</td><td>14</td><td>CyberArk公式データシート・公式ソリューションページ、政府調達カタログ</td><td><span class="chip ok">一致</span></td></tr>
-<tr><td>EPMはSaaSで提供、オンプレ版は2023年12月31日でEOL</td><td>14</td><td>第三者製品DB、政府調達カタログ</td><td><span class="chip warn">要確認</span></td></tr>
-<tr><td>Privilege Cloudのコネクタはインターネット向けアウトバウンド通信が基本（インバウンド不要）</td><td>5</td><td>実務者記事、公式SIA紹介記事（VPNレス・インバウンド不要）</td><td><span class="chip warn">要確認</span>（ポート・宛先はバージョンで確認）</td></tr>
-<tr><td>CyberArk Blueprintの段階的導入（段階名は新人向け要約）</td><td>15</td><td>CyberArk公式Blueprintページ（段階的・リスクベースであることを確認。各段階の正式名称は全文未確認）</td><td><span class="chip warn">要確認</span></td></tr>
-<tr><td>Safe名の最大長（28文字）</td><td>6</td><td>実務上の通説（本作成時に公式記載は直接未確認）</td><td><span class="chip warn">要確認</span></td></tr>
+<tr><td>Palo Alto NetworksによるCyberArk買収は2026年2月11日に完了</td><td>2</td><td>Palo Alto Networks 10-Q（SEC提出書類）、複数の報道</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>2026年5月、CyberArk技術を基盤とする新ブランド「Idira」発表。CyberArk名も併存</td><td>2</td><td>CyberArk公式サイトの表記（“CyberArk is now Idira”）、複数の報道</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Conjur Cloud → Secrets Manager, SaaS／Conjur Enterprise → Secrets Manager, Self-Hosted に改称</td><td>2, 13</td><td>CyberArk公式「Product Name Updates」</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>PAM Self-Hosted v15 は2025年12月15日リリース、Standard-Term Support（STS）</td><td>2, 15</td><td>公式告知を転載した実務者記事（公式ページは直接未確認）</td><td><span class="chip warn">要確認</span></td><td>2026-10-18</td></tr>
+<tr><td>Vault の通信ポートは TCP 1858（既定）</td><td>3, 4</td><td>公式インストールパラメータ表の転載、複数の構築記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Vaultはインストール時にWindowsファイアウォールを制御し、既定で1858のみ許可。ドメイン非参加・専用サーバが原則</td><td>4</td><td>公式GitHub CYBRHardeningCheck（Vault_DomainJoined チェック）、複数の構築記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Masterユーザーは全Safeに自動で全権限を持つ緊急用ユーザー、ログインにはリカバリキー（Master CD）が必要</td><td>4</td><td>CyberArk研修資料の公開スライド、複数の構築記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Safe権限「List / Use / Retrieve accounts」の意味</td><td>6</td><td>大学の公開手順書（Privilege Cloud）、連携ベンダー公式ドキュメント、psPASモジュール</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>CPMは変更・検証・調整（Reconcile）を行い、調整用アカウントはプラットフォームまたはアカウント単位で設定</td><td>7, 8</td><td>Ansible公式コレクション文書、複数の構築記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Master Policy：理由入力・二重承認・排他パスワード・ワンタイムパスワード・セッション記録</td><td>9</td><td>複数の構築記事・ラボ記録</td><td><span class="chip ok">一致</span>（既定値はバージョンで要確認）</td><td>2026-10-18</td></tr>
+<tr><td>PSMはPSMConnectでRDP接続を受け、シャドウユーザーに切り替えて接続コンポーネントを起動</td><td>10</td><td>複数の実務者記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>PTAは資格情報窃取の疑い・管理外特権アクセス等を検知し、自動ローテーションやセッション停止で対応可能</td><td>12</td><td>CyberArk公式GitHub、SIEM連携ベンダー文書、CyberArk公式ブログ</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>CCPはエージェントレスのWebサービス、CPはローカルキャッシュを持つエージェント型</td><td>13</td><td>連携ベンダー公式ドキュメント（UiPath等）、CyberArk公式発表</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>Secrets HubはAWS等のクラウドネイティブなシークレットストアとPAMを同期</td><td>13</td><td>CyberArk公式ブログ（2025年7月）、第三者比較記事</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>SIA（旧DPA）はサーバ・DB・KubernetesへのJIT・一時的な資格情報でのアクセスを提供</td><td>14</td><td>CyberArk公式データシート・公式ソリューションページ、政府調達カタログ</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr>
+<tr><td>EPMはSaaSで提供、オンプレ版は2023年12月31日でEOL</td><td>14</td><td>第三者製品DB、政府調達カタログ</td><td><span class="chip warn">要確認</span></td><td>2026-10-18</td></tr>
+<tr><td>Privilege Cloudのコネクタはインターネット向けアウトバウンド通信が基本（インバウンド不要）</td><td>5</td><td>実務者記事、公式SIA紹介記事（VPNレス・インバウンド不要）</td><td><span class="chip warn">要確認</span>（ポート・宛先はバージョンで確認）</td><td>2026-10-18</td></tr>
+<tr><td>CyberArk Blueprintの段階的導入（段階名は新人向け要約）</td><td>15</td><td>CyberArk公式Blueprintページ（段階的・リスクベースであることを確認。各段階の正式名称は全文未確認）</td><td><span class="chip warn">要確認</span></td><td>2026-10-18</td></tr>
+<tr><td>Safe名の最大長（28文字）</td><td>6</td><td>実務上の通説（本作成時に公式記載は直接未確認）</td><td><span class="chip warn">要確認</span></td><td>2026-10-18</td></tr>
 </tbody></table></div>
+
+<h2>情報の鮮度を保つ運用ルール</h2>
+<p>CyberArk製品は、ブランド統合（Idira）や製品名変更が続いている時期です。教材の記述が古くならないよう、次のルールで見直します。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>頻度</th><th>担当</th><th>確認すること</th></tr></thead>
+<tbody>
+<tr><td>四半期ごと（1・4・7・10月）</td><td>教材オーナー（PAMチーム）</td><td>公式「Product Name Updates」・各製品のリリースノート（What's New）・サポート期間（EOL）ページを確認し、該当章と用語集・問題バンクを更新。上表の「最終確認日」を更新</td></tr>
+<tr><td>Self-Hosted新バージョン公開時</td><td>教材オーナー</td><td>第3・4・8・10・15章のポート・コンポーネント・アップグレード手順に影響がないか確認</td></tr>
+<tr><td>研修実施前（毎回）</td><td>講師</td><td>「要確認」項目を自社で使うバージョンの公式ドキュメントで確認。ハンズオン環境の画面とバージョンを確認し、画面キャプチャを差し替え</td></tr>
+<tr><td>受講者からの指摘時</td><td>講師</td><td>指摘内容を公式ドキュメントで確認し、正しければ修正して最終確認日を更新</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">見直しチェックリスト</span>
+<ul class="checklist" data-key="fresh">
+<li>製品名・ブランド名の変更がないか（第2章・用語集）</li>
+<li>Self-Hostedの最新バージョンとサポート区分（STS/LTS）に変更がないか（第15章）</li>
+<li>Privilege Cloudのコネクタ要件（OS・通信先）の変更がないか（第5章）</li>
+<li>新製品・機能（AIエージェントのID保護など）の追加がないか（第2・14章）</li>
+<li>問題バンク・ケーススタディの正解が最新仕様と矛盾していないか</li>
+<li>上表の「最終確認日」と次回見直し予定日を更新したか</li>
+</ul>
+</div>
+<p class="small muted">次回見直し予定：2027年1月</p>
 
 <h2>参照した主な外部情報（公式以外を含む）</h2>
 <ul class="small">

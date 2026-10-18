@@ -25,14 +25,17 @@
     { id: "ch12", t: "脅威検知・監査・レポート", g: "PTA/監査ログ/SIEM連携の使い分けができる" },
     { id: "ch13", t: "アプリケーションとシークレット管理", g: "CP/CCP/Secrets Manager/Secrets Hubを使い分けられる" },
     { id: "ch14", t: "ZSP/JITとモダンアクセス", g: "SIA・SCA・EPM・Remote Accessの位置づけを説明できる" },
-    { id: "ch15", t: "設計思想・導入・運用の実践", g: "段階導入と日常運用・障害対応の勘所を説明できる" }
+    { id: "ch15", t: "設計思想・導入・運用の実践", g: "段階導入と日常運用・障害対応の勘所を説明できる" },
+    { id: "ch16", t: "ハンズオン演習（検証環境）", g: "検証環境で登録・接続・録画確認・障害復旧を一人で実施できる" }
   ];
   var PAGES = [
     { href: "index.html", t: "ホーム" },
     { href: "references.html", t: "出典・公式ナレッジ" },
     { href: "glossary.html", t: "用語集" },
     { href: "cases.html", t: "ケーススタディ" },
-    { href: "quiz.html", t: "総まとめ練習問題" }
+    { href: "quiz.html", t: "総まとめ練習問題" },
+    { href: "report.html", t: "成績・学習記録" },
+    { href: "trainer.html", t: "講師用：採点・集計", side: "講師向け" }
   ];
   window.CA_SITE = { chapters: CHAPTERS, pages: PAGES };
 
@@ -74,7 +77,7 @@
       '<a class="brand" href="' + root + 'index.html"><span class="brand-mark">CA</span><span>CyberArk 新人研修</span></a>' +
       '<span class="spacer"></span>' +
       '<nav class="top-links" aria-label="主要ページ">' +
-      PAGES.slice(1).map(function (p) { return '<a href="' + root + p.href + '"' + (current === p.href ? ' aria-current="page"' : "") + ">" + p.t + "</a>"; }).join("") +
+      PAGES.slice(1, 5).map(function (p) { return '<a href="' + root + p.href + '"' + (current === p.href ? ' aria-current="page"' : "") + ">" + p.t + "</a>"; }).join("") +
       "</nav>" +
       '<button class="icon-btn theme-btn" type="button" aria-label="表示テーマ切替" title="ライト／ダーク切替">🌓</button>';
     document.body.insertBefore(header, document.body.firstChild);
@@ -85,13 +88,14 @@
     var h = "<h4>はじめに</h4>";
     PAGES.forEach(function (p, i) {
       if (i === 3) {
-        h += "<h4>学びフェーズ（全15章）</h4>";
+        h += "<h4>学びフェーズ（全" + CHAPTERS.length + "章）</h4>";
         CHAPTERS.forEach(function (c, ci) {
           var href = "learn/" + c.id + ".html";
           h += '<a href="' + root + href + '"' + (current === href ? ' aria-current="page"' : "") + '><span class="num">' + String(ci + 1).padStart(2, "0") + "</span><span>" + c.t + "</span>" + (done[c.id] ? '<span class="done-mark" title="完了">✔</span>' : "") + "</a>";
         });
         h += "<h4>実践フェーズ</h4>";
       }
+      if (p.side) h += "<h4>" + p.side + "</h4>";
       h += '<a href="' + root + p.href + '"' + (current === p.href ? ' aria-current="page"' : "") + "><span>" + p.t + "</span></a>";
     });
     side.innerHTML = h;
@@ -268,6 +272,39 @@
     });
   }
 
+  // ---------- 画面キャプチャ差し込み枠 ----------
+  // <figure class="shot" data-src="../assets/img/xxx.png" data-title="…" data-how="取得手順">
+  // 画像があれば表示し、無ければ「差し込み枠」として取得手順を表示する
+  function buildShots() {
+    document.querySelectorAll("figure.shot").forEach(function (f) {
+      var src = f.getAttribute("data-src"), title = f.getAttribute("data-title") || "画面キャプチャ";
+      var how = f.getAttribute("data-how") || "";
+      var img = new Image();
+      img.alt = title;
+      img.onload = function () { f.innerHTML = ""; f.appendChild(img); f.appendChild(el("figcaption", null, esc(title))); f.classList.add("has-img"); };
+      img.onerror = function () {
+        f.innerHTML = '<div class="shot-ph"><div class="shot-ic">🖼</div><div><strong>画面キャプチャ差し込み枠：' + esc(title) + "</strong>" +
+          '<p class="small">取得手順：' + esc(how) + '</p><p class="small muted">保存先：<code>' + esc(src.replace(/^(\.\.\/)+/, "")) + "</code>（実ホスト名・IP・個人名はマスクしてください。<a href=\"" + root + 'assets/img/README.md">差し込みガイド</a>）</p></div></div>';
+      };
+      img.src = src;
+    });
+  }
+
+  // ---------- チェックリスト（ハンズオン等・ブラウザ内保存） ----------
+  function buildChecklists() {
+    var saved = store.get("ca-check", {});
+    document.querySelectorAll("ul.checklist[data-key]").forEach(function (ul) {
+      var key = ul.getAttribute("data-key");
+      ul.querySelectorAll(":scope > li").forEach(function (li, i) {
+        var id = key + "-" + i;
+        li.innerHTML = '<label><input type="checkbox"' + (saved[id] ? " checked" : "") + "><span>" + li.innerHTML + "</span></label>";
+        li.querySelector("input").addEventListener("change", function (e) {
+          var cur = store.get("ca-check", {}); cur[id] = e.target.checked; store.set("ca-check", cur);
+        });
+      });
+    });
+  }
+
   // ---------- 章末振り返り問題（固定順） ----------
   function buildReviews() {
     var marks = "ABCDEFG";
@@ -346,6 +383,8 @@
     buildDiagrams();
     buildFlows();
     buildReviews();
+    buildShots();
+    buildChecklists();
     buildPager();
     buildHomeProgress();
     document.dispatchEvent(new CustomEvent("ca:ready"));
