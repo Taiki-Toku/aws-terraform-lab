@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch09.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第9章 Master Policyとアクセスワークフロー</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 09｜設計・設定</div>
+  <h1>Master Policyとアクセスワークフロー</h1>
+  <p class="lead">「本番DBを使うときは上長の承認が必要」「使ったら必ずパスワードを変える」——こうした社内ルールを、CyberArkはMaster Policyとプラットフォームの例外設定で実現します。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">Master Policyの考え方 → 主なルール（理由・二重承認・排他・ワンタイム・記録）→ 例外の付け方 → 二重承認ワークフローの流れ → 要件からの設定選択</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Master Policyの主なルールの意味と効果を説明できる</li>
+    <li>二重承認・排他・ワンタイムパスワードを組み合わせたワークフローを説明できる</li>
+    <li>業務要件を聞いて、どのルールをどの範囲（全体／例外）に適用するか提案できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 75分</span><span class="chip">前提：第6〜8章</span><span class="chip warn">重点章</span></div>
+</div>
+
+<h2>1. Master Policyとは</h2>
+<p><strong>Master Policy</strong>は、組織全体に適用される特権アクセスの<strong>基本ルール</strong>です。すべてのアカウントに既定で適用され、特定のプラットフォームだけ別のルールにしたい場合は<strong>例外（Exception）</strong>を設定します。</p>
+<div class="callout analogy"><span class="ttl">会社の「就業規則」と「部署別ルール」</span>
+<p>全社員に適用される就業規則（Master Policy）があり、「工場の危険区域だけは2人作業必須」のように特定の場所だけ厳しいルール（例外）を上乗せします。全体は緩めに、重要な所だけ厳しく——が基本の考え方です。</p>
+</div>
+
+<h2>2. 主なルール</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>分類</th><th>ルール</th><th>効果</th><th>向いている対象</th></tr></thead>
+<tbody>
+<tr><td rowspan="4">アクセスワークフロー</td><td><strong>理由の入力必須</strong></td><td>利用時に作業理由（チケット番号等）の入力を求め、監査ログに残す</td><td>ほぼ全て</td></tr>
+<tr><td><strong>二重承認（Dual Control）</strong></td><td>利用前に承認者の承認を必要とする</td><td>本番DB、ドメイン管理者、委託先利用</td></tr>
+<tr><td><strong>排他（Exclusive／チェックアウト）</strong></td><td>同時に1人しか使えない。使用中は他の人が使えない</td><td>誰が使ったかを1人に特定したいもの</td></tr>
+<tr><td><strong>ワンタイムパスワード</strong></td><td>利用後（最低有効期間の経過後）に必ずパスワードを変更</td><td>Retrieve（表示）で使わせるもの</td></tr>
+<tr><td rowspan="2">パスワード管理</td><td>定期変更の間隔</td><td>指定日数ごとにCPMが変更</td><td>全て</td></tr>
+<tr><td>定期検証の間隔</td><td>指定日数ごとにCPMが検証</td><td>全て</td></tr>
+<tr><td rowspan="2">セッション管理</td><td>PSM経由の接続を必須化（分離・監視）</td><td>直接接続（Retrieve後に自分で接続）ではなくPSM経由のみを許可</td><td>サーバ・DBの対話作業</td></tr>
+<tr><td>セッションの記録・保存</td><td>録画・操作ログを保存</td><td>PSM経由の全セッション</td></tr>
+<tr><td>監査</td><td>監査ログの保持期間</td><td>Vault上での監査データの保持日数</td><td>規程に合わせる</td></tr>
+</tbody></table></div>
+<div class="callout verify"><span class="ttl">既定値について</span><p>各ルールの既定値（有効／無効、日数）はバージョン・提供形態で異なる場合があります。設計書には「既定値」ではなく「自社で決めた値」を明記しましょう。</p></div>
+
+<h3>排他とワンタイムの「最低有効期間」</h3>
+<p>排他やワンタイムでは、<strong>最低有効期間（MinValidityPeriod）</strong>という考え方があります。パスワードを取り出した後、この期間はパスワードが変更されず作業できます。期間経過後（または利用者が返却＝チェックインした後）に、CPMがパスワードを変更し、排他ロックも解除されます。</p>
+
+<div class="callout analogy"><span class="ttl">ホテルのカードキー</span>
+<p><strong>二重承認</strong>＝予約時にフロントの承認が必要、<strong>排他</strong>＝1つの部屋は同時に1組しか泊まれない、<strong>ワンタイム</strong>＝チェックアウトしたらカードキーは無効化され、次の客には新しいキーが発行される、<strong>最低有効期間</strong>＝宿泊期間中はキーが使える。</p>
+</div>
+
+<h2>3. 例外（プラットフォーム単位）の付け方</h2>
+<p>例えばヒカリ精機では、次のように設定しています（架空の例）。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>対象</th><th>理由入力</th><th>二重承認</th><th>排他</th><th>ワンタイム</th><th>PSM必須・録画</th></tr></thead>
+<tbody>
+<tr><td>Master Policy（全体）</td><td>必須</td><td>なし</td><td>なし</td><td>なし</td><td>必須</td></tr>
+<tr><td>例外：<code>HK-Win-DomainAdmin</code></td><td>必須</td><td><strong>あり</strong></td><td><strong>あり</strong></td><td><strong>あり</strong></td><td>必須</td></tr>
+<tr><td>例外：<code>HK-Oracle-PRD</code></td><td>必須</td><td><strong>あり</strong></td><td>なし</td><td>なし</td><td>必須</td></tr>
+<tr><td>例外：<code>HK-NW-Device</code>（PSM非対応の古い機器）</td><td>必須</td><td>なし</td><td><strong>あり</strong></td><td><strong>あり</strong></td><td>（Retrieveで利用）</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">「承認疲れ」に注意</span>
+<p>何でも二重承認にすると、承認者が中身を見ずに承認する「承認疲れ」が起き、統制が形骸化します。<strong>本当に重要なものだけ</strong>に絞り、それ以外は録画と事後監査で担保するのが現実的です。</p>
+</div>
+
+<h2>4. 二重承認ワークフローの流れ</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図9-1：二重承認＋排他＋ワンタイムのワークフロー（本番ドメイン管理者の例）</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":330,
+"nodes":[
+{"id":"u","x":10,"y":30,"w":150,"h":60,"label":"高橋さん","sub":"申請者","kind":"user","s":[1,4,5]},
+{"id":"pvwa","x":310,"y":30,"w":170,"h":60,"label":"PVWA／Vault","sub":"申請・承認・貸出管理","kind":"vault","s":[1,2,3,4,5,6]},
+{"id":"ap","x":630,"y":30,"w":160,"h":60,"label":"山本さん","sub":"承認者","kind":"user","s":[2,3]},
+{"id":"psm","x":310,"y":240,"w":170,"h":60,"label":"PSM","sub":"録画","kind":"comp","s":[4]},
+{"id":"t","x":10,"y":240,"w":150,"h":60,"label":"hk-ad01","sub":"ドメイン管理者","kind":"target","s":[4]},
+{"id":"cpm","x":630,"y":240,"w":160,"h":60,"label":"CPM","kind":"comp","s":[6]}],
+"edges":[
+{"from":"u","to":"pvwa","label":"①申請（理由・時間帯）","curve":-24,"s":[1]},
+{"from":"pvwa","to":"ap","label":"②通知","curve":-24,"s":[2]},
+{"from":"ap","to":"pvwa","label":"③承認","curve":-24,"ly":14,"s":[3]},
+{"from":"pvwa","to":"psm","label":"④チェックアウト→接続","s":[4]},
+{"from":"psm","to":"t","s":[4]},
+{"from":"u","to":"pvwa","label":"⑤返却","curve":24,"ly":16,"s":[5]},
+{"from":"cpm","to":"pvwa","label":"⑥PW変更・ロック解除","s":[6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="アクセス申請">高橋さんはPVWAで <code>hk-ad01</code> のドメイン管理者アカウントの利用を申請します。作業理由（変更管理チケット番号 <code>CHG-2026-1042</code>）と利用したい時間帯を入力します。</li>
+<li data-label="承認者へ通知">申請は、Safeで「Authorize account requests」権限を持つ承認者（山本さん）に通知されます（メール通知・ITSM連携等）。</li>
+<li data-label="承認">山本さんは申請内容とチケットを確認して承認します。必要な承認者数（例：2名）を満たすまで利用できません。却下も可能です。</li>
+<li data-label="チェックアウトと接続">承認後、指定時間帯に高橋さんはアカウントをチェックアウト（排他ロック）してPSM経由で接続します。この間、他の人はこのアカウントを使えません。セッションは録画されます。</li>
+<li data-label="返却（チェックイン）">作業が終わったら高橋さんはアカウントを返却します。返却し忘れても、最低有効期間が過ぎれば自動的に解放されます。</li>
+<li data-label="ワンタイム変更">ワンタイム設定により、CPMがパスワードを変更し、排他ロックを解除します。万一パスワードがどこかに残っていても、もう使えません。</li>
+</ol>
+</figure>
+
+<div class="callout key"><span class="ttl">ITSM（チケットシステム）連携</span>
+<p>ServiceNow等のチケットシステムと連携すると、「有効な変更チケットがある場合だけ利用を許可する」といった検証を自動化できます。承認の証跡がチケット側にも残り、監査対応が楽になります。対応製品・設定方法は公式ドキュメントで確認してください。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第9章）</h2>
+<div class="rq" data-correct="3"><p class="rq-q">Q1. 「パスワードを表示して使わせるが、使用後には必ず変えたい」。適したルールは？</p>
+<ul class="rq-opts"><li>理由の入力必須</li><li>定期検証</li><li>監査ログ保持期間</li><li>ワンタイムパスワード</li></ul>
+<div class="rq-exp">ワンタイムパスワードは、利用後（最低有効期間経過後）にCPMが必ず変更します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. 全体は緩めに、本番DBだけ二重承認にしたい。正しい設定方法は？</p>
+<ul class="rq-opts"><li>本番DB用プラットフォームにMaster Policyの例外を設定する</li><li>Master Policyで全アカウントに二重承認を設定する</li><li>本番DBのSafeを削除する</li><li>Masterユーザーで毎回ログインする</li></ul>
+<div class="rq-exp">Master Policyは全体の基本ルール、特定対象だけ変えるにはプラットフォーム単位の例外を使います。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q3. 排他（チェックアウト）の効果として正しいものは？</p>
+<ul class="rq-opts"><li>パスワードが表示されなくなる</li><li>同時に1人しか使えず、使用者を1人に特定できる</li><li>録画が無効になる</li><li>承認者が不要になる</li></ul>
+<div class="rq-exp">排他は同時利用を防ぎ、その時間帯に誰が使ったかを明確にします。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. 何でも二重承認にしたときに起こりやすい問題は？</p>
+<ul class="rq-opts"><li>Vaultの暗号化が弱くなる</li><li>CPMが停止する</li><li>承認者が内容を確認せず承認する「承認疲れ」で統制が形骸化する</li><li>録画データが消える</li></ul>
+<div class="rq-exp">重要なものに絞り、それ以外は録画と事後監査で担保するのが現実的です。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

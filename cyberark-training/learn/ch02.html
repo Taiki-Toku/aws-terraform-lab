@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch02.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第2章 CyberArk製品群の全体像</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 02｜基礎</div>
+  <h1>CyberArk製品群の全体像</h1>
+  <p class="lead">CyberArkは「PAMの会社」から「アイデンティティセキュリティの会社」へと広がりました。まずは製品の地図を頭に入れ、自分が担当する製品がどこにあるかを把握します。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">会社の動向（買収・新ブランド）→ 製品マップ → 提供形態（Self-Hosted / SaaS）→ 製品名の変遷 → 新人が最初に触る範囲</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>主要製品（PAM Self-Hosted、Privilege Cloud、SIA、SCA、EPM、Secrets Manager、Secrets Hub、Workforce Identity）が何を守るかを1行で言える</li>
+    <li>旧製品名と新製品名の対応を知り、古い資料を読んでも混乱しない</li>
+    <li>2026年の会社動向（Palo Alto Networksによる買収、Idiraブランド）を正しく説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 45分</span><span class="chip">前提：第1章</span></div>
+</div>
+
+<h2>1. 2026年の会社動向（最新情報）</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>時期</th><th>出来事</th></tr></thead>
+<tbody>
+<tr><td>2025年7月</td><td>Palo Alto NetworksがCyberArkの買収を発表</td></tr>
+<tr><td>2026年2月11日</td><td>買収完了（Palo Alto Networksの四半期報告書（10-Q）に記載）。CyberArk製品は単独製品としても引き続き提供される旨が報じられています。</td></tr>
+<tr><td>2026年5月</td><td>CyberArkの技術を基盤とする新ブランド<strong>「Idira」</strong>を発表。人・機械・AIエージェントのIDを対象とするプラットフォームとして位置づけられています。CyberArkの名称も併存しています。</td></tr>
+</tbody></table></div>
+<div class="callout danger"><span class="ttl">製品名・画面名は変わり得る</span>
+<p>ブランド統合期間中は、ドキュメントや管理画面の表記に旧名・新名が混在する可能性があります。お客様への説明や設計書では、<strong>契約上の製品名と公式ドキュメントの最新表記</strong>を確認してから使いましょう。本教材では広く通用している「CyberArk ○○」の表記を用います。</p>
+</div>
+
+<h2>2. 製品マップ</h2>
+<p>CyberArkの製品群は「誰の（どんな）アイデンティティを」「どこで」守るかで整理すると覚えやすくなります。</p>
+
+<script class="dg" type="application/json">
+{"w":820,"h":430,"title":"CyberArk製品マップ","caption":"図2-1：CyberArk製品マップ（概念図）",
+"zones":[
+{"x":10,"y":10,"w":800,"h":90,"label":"共通基盤：Identity Security Platform Shared Services（ISPSS）＝認証・監査・管理画面などSaaS共通部分"},
+{"x":10,"y":115,"w":395,"h":305,"label":"人（管理者・従業員・委託先）"},
+{"x":415,"y":115,"w":395,"h":305,"label":"機械（アプリ・CI/CD・クラウドワークロード）"}],
+"nodes":[
+{"id":"wi","x":40,"y":40,"w":200,"h":50,"label":"Workforce Identity","sub":"SSO・MFA・ライフサイクル","kind":"user"},
+{"id":"itdr","x":310,"y":40,"w":200,"h":50,"label":"脅威検知・分析","sub":"PTA / ITDR 等","kind":"threat"},
+{"id":"plat","x":580,"y":40,"w":200,"h":50,"label":"監査・レポート","sub":"共通の監査基盤","kind":"comp"},
+{"id":"pam","x":30,"y":150,"w":170,"h":70,"label":"PAM Self-Hosted","sub":"自社構築のPAM","kind":"vault"},
+{"id":"pc","x":220,"y":150,"w":170,"h":70,"label":"Privilege Cloud","sub":"SaaS版PAM","kind":"vault"},
+{"id":"sia","x":30,"y":240,"w":170,"h":70,"label":"SIA","sub":"サーバ/DB/K8sへのJIT","kind":"cloud"},
+{"id":"sca","x":220,"y":240,"w":170,"h":70,"label":"SCA","sub":"クラウド管理画面へのJIT","kind":"cloud"},
+{"id":"epm","x":30,"y":330,"w":170,"h":70,"label":"EPM","sub":"端末のローカル管理者権限","kind":"target"},
+{"id":"ra","x":220,"y":330,"w":170,"h":70,"label":"Remote Access","sub":"委託先のVPNレス接続","kind":"target"},
+{"id":"cp","x":430,"y":150,"w":170,"h":70,"label":"CP / CCP","sub":"アプリへの資格情報提供","kind":"comp"},
+{"id":"sm","x":620,"y":150,"w":170,"h":70,"label":"Secrets Manager","sub":"旧Conjur／DevOps向け","kind":"comp"},
+{"id":"sh","x":430,"y":240,"w":170,"h":70,"label":"Secrets Hub","sub":"クラウドのシークレット\nストアと同期","kind":"cloud"},
+{"id":"mi","x":620,"y":240,"w":170,"h":70,"label":"証明書・機械ID","sub":"証明書ライフサイクル等","kind":"comp"},
+{"id":"ai","x":430,"y":330,"w":360,"h":70,"label":"AIエージェントのID保護","sub":"2025〜2026年に拡充が進む領域（最新の公式情報で確認）","kind":"threat"}],
+"edges":[]}
+</script>
+
+<div class="table-wrap"><table>
+<thead><tr><th>製品</th><th>一言でいうと</th><th>提供形態</th><th>詳しく</th></tr></thead>
+<tbody>
+<tr><td><strong>PAM Self-Hosted</strong></td><td>特権IDの金庫・自動変更・セッション録画を<strong>自社環境</strong>に構築</td><td>オンプレ／自社管理のクラウド</td><td>第3〜12章</td></tr>
+<tr><td><strong>Privilege Cloud</strong></td><td>上記を<strong>SaaS</strong>で利用。Vault等の運用はCyberArk</td><td>SaaS＋顧客側コネクタ</td><td>第5章</td></tr>
+<tr><td><strong>Secure Infrastructure Access（SIA）</strong></td><td>サーバ・DB・Kubernetesに、<strong>その場限りの権限</strong>で接続（旧 Dynamic Privileged Access）</td><td>SaaS</td><td>第14章</td></tr>
+<tr><td><strong>Secure Cloud Access（SCA）</strong></td><td>AWS/Azure/GCPの管理画面への<strong>期間限定の権限</strong>付与</td><td>SaaS</td><td>第14章</td></tr>
+<tr><td><strong>Endpoint Privilege Manager（EPM）</strong></td><td>PCやサーバの<strong>ローカル管理者権限を取り上げ</strong>、必要なアプリだけ昇格</td><td>SaaS＋エージェント</td><td>第14章</td></tr>
+<tr><td><strong>Remote Access</strong></td><td>保守委託先が<strong>VPNなし</strong>で安全に特権アクセス</td><td>SaaS</td><td>第14章</td></tr>
+<tr><td><strong>Credential Provider（CP）／Central Credential Provider（CCP）</strong></td><td>アプリが<strong>パスワードをコードに書かず</strong>Vaultから取得</td><td>Self-Hosted／Privilege Cloud と組み合わせ</td><td>第13章</td></tr>
+<tr><td><strong>Secrets Manager</strong></td><td>コンテナ・CI/CD等<strong>DevOps向け</strong>のシークレット管理（旧 Conjur）</td><td>SaaS／Self-Hosted</td><td>第13章</td></tr>
+<tr><td><strong>Secrets Hub</strong></td><td>AWS Secrets Manager等<strong>クラウド純正の金庫</strong>とPAMを同期</td><td>SaaS</td><td>第13章</td></tr>
+<tr><td><strong>Workforce Identity</strong></td><td>従業員の<strong>SSO・MFA</strong>（旧 CyberArk Identity）</td><td>SaaS</td><td>第11章</td></tr>
+</tbody></table></div>
+
+<div class="callout analogy"><span class="ttl">製品群は「警備会社のサービスメニュー」</span>
+<p>PAMは<strong>本社金庫室の警備</strong>、EPMは<strong>各社員の机の引き出しの鍵管理</strong>、Remote Accessは<strong>業者の入館受付</strong>、Secrets Managerは<strong>工場の自動ロボットが使う鍵の管理</strong>、Workforce Identityは<strong>社員証ゲート</strong>です。同じ警備会社なので、受付（認証）や監視カメラの記録（監査）は共通の仕組みにまとまっています。これがISPSS（共通基盤）です。</p>
+</div>
+
+<h2>3. 提供形態：Self-Hosted と SaaS</h2>
+<div class="grid-2">
+<div class="card"><h4>🏢 Self-Hosted（自社構築）</h4>
+<ul class="small"><li>Vault・PVWA・CPM・PSMなどを<strong>自社で構築・運用</strong></li><li>バージョンアップ・バックアップ・DRも自社の責任</li><li>閉域網・厳格な規制要件の組織で採用されることが多い</li></ul></div>
+<div class="card"><h4>☁ SaaS（Privilege Cloud ほか）</h4>
+<ul class="small"><li>Vault等の中核をCyberArkが運用</li><li>顧客側は<strong>コネクタ</strong>（CPM・PSM等）だけを運用</li><li>機能追加が早く、ISPSS上の他SaaS製品と統合しやすい</li></ul></div>
+</div>
+<p>詳しい比較と選び方は第5章で扱います。</p>
+
+<h2>4. 製品名の変遷（古い資料を読むときの辞書）</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>旧称（資料で見かける名前）</th><th>現在の主な呼び方</th></tr></thead>
+<tbody>
+<tr><td>Enterprise Password Vault（EPV）、Privileged Account Security（PAS）、Core PAS</td><td>Privileged Access Manager（PAM）Self-Hosted</td></tr>
+<tr><td>Conjur Cloud</td><td>CyberArk Secrets Manager, SaaS</td></tr>
+<tr><td>Conjur Enterprise（Conjur Secrets Manager Enterprise）</td><td>CyberArk Secrets Manager, Self-Hosted</td></tr>
+<tr><td>Dynamic Privileged Access（DPA）</td><td>Secure Infrastructure Access（SIA）</td></tr>
+<tr><td>CyberArk Identity（の従業員向け機能）</td><td>Workforce Identity</td></tr>
+<tr><td>Alero（Vendor PAM 等）</td><td>Remote Access</td></tr>
+<tr><td>Application Access Manager（AAM）、AIM</td><td>Credential Providers（CP / CCP）</td></tr>
+</tbody></table></div>
+<div class="callout verify"><span class="ttl">確認方法</span><p>名称変更の一次情報はCyberArk公式の「Product Name Updates」ページです。Conjur→Secrets Managerの改称は同ページで確認済み。その他は複数の公開資料で一致を確認しています（<a href="../references.html">出典ページ</a>）。</p></div>
+
+<h2>5. 新人が最初に触る範囲</h2>
+<p>多くの現場では、まず<strong>PAM（Self-HostedまたはPrivilege Cloud）</strong>の運用から担当します。本教材の第3〜12章はこのPAMを中心に構成されています。SIAやSecrets Managerなどは、PAMの考え方（Safe・ポリシー・監査）を理解してから学ぶと理解が速くなります。</p>
+
+<div class="callout tip"><span class="ttl">お客様との会話で困らないために</span>
+<p>お客様が「CyberArk入ってます」と言ったら、まず<strong>「Self-HostedとPrivilege Cloudのどちらですか？バージョンは？」</strong>と確認しましょう。前提がまるで違うためです。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第2章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. 保守委託先がVPNを使わずに安全に特権アクセスするための製品は？</p>
+<ul class="rq-opts"><li>Endpoint Privilege Manager</li><li>Secrets Hub</li><li>Remote Access</li><li>Credential Provider</li></ul>
+<div class="rq-exp">Remote Accessです（旧Aleroの系譜）。EPMは端末のローカル管理者権限の制御、Secrets Hubはクラウドのシークレットストア同期、CPはアプリ向けです。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. 「Conjur Enterprise」の現在の名称は？</p>
+<ul class="rq-opts"><li>CyberArk Secrets Manager, Self-Hosted</li><li>CyberArk Secrets Hub</li><li>Privilege Cloud</li><li>Workforce Identity</li></ul>
+<div class="rq-exp">Conjur EnterpriseはSecrets Manager, Self-Hosted、Conjur CloudはSecrets Manager, SaaSに改称されました。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q3. Privilege Cloudの説明として正しいものは？</p>
+<ul class="rq-opts"><li>Vaultを顧客が自社データセンターで運用する</li><li>Vault等の中核をCyberArkが運用し、顧客はコネクタを運用する</li><li>エンドポイントのローカル管理者権限を管理する製品である</li><li>アプリ専用で、人の特権アクセスは扱えない</li></ul>
+<div class="rq-exp">Privilege CloudはPAMのSaaS版で、顧客側にはCPMやPSMを載せたコネクタを置きます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q4. 2026年の会社動向として正しいものは？</p>
+<ul class="rq-opts"><li>CyberArkがPalo Alto Networksを買収した</li><li>CyberArkの全製品が2026年に販売終了した</li><li>CyberArkはPAM製品から撤退した</li><li>Palo Alto NetworksによるCyberArk買収が2026年2月に完了し、5月にIdiraブランドが発表された</li></ul>
+<div class="rq-exp">買い手はPalo Alto Networksです。買収完了は2026年2月11日、Idiraブランドの発表は2026年5月です。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

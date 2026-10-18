@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch08.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第8章 CPMとパスワードライフサイクル</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 08｜設計・設定</div>
+  <h1>CPMとパスワードライフサイクル</h1>
+  <p class="lead">CPMは「定期的に鍵を作り替える錠前師」です。変更（Change）・検証（Verify）・調整（Reconcile）の3つの仕事と、失敗したときの調べ方を身につけます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">CPMの3つの仕事 → 実行のきっかけ → 変更処理の内部フロー → 調整（Reconcile）のフロー → よくある失敗と切り分け → CPMの配置設計</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Change・Verify・Reconcileの違いを説明できる</li>
+    <li>パスワード変更時に「パスワードが失われない」仕組みを説明できる</li>
+    <li>CPMエラーの典型原因を挙げ、ログを見て切り分けを始められる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 90分</span><span class="chip">前提：第7章</span><span class="chip warn">重点章</span></div>
+</div>
+
+<h2>1. CPMの3つの仕事</h2>
+<div class="callout analogy"><span class="ttl">マンションの鍵を管理する錠前師</span>
+<p><strong>変更（Change）</strong>：定期的に鍵穴ごと新しい鍵に取り替える。<br>
+<strong>検証（Verify）</strong>：管理室にある鍵で、本当にドアが開くか試してみる。<br>
+<strong>調整（Reconcile）</strong>：誰かが勝手に鍵を替えてしまい管理室の鍵で開かないとき、管理会社のマスター権限で鍵を強制的に作り直す。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>操作</th><th>何をする</th><th>使う権限</th><th>主なきっかけ</th></tr></thead>
+<tbody>
+<tr><td><strong>Change</strong></td><td>新しいパスワードを生成し、ターゲットとVaultの両方を更新</td><td>対象アカウント自身（またはLogon Account経由）</td><td>定期変更、手動実行、利用後（ワンタイム）</td></tr>
+<tr><td><strong>Verify</strong></td><td>Vaultのパスワードで実際にログインできるか確認</td><td>対象アカウント自身</td><td>定期検証、手動実行、登録時</td></tr>
+<tr><td><strong>Reconcile</strong></td><td>不一致のパスワードを、高権限アカウントで強制リセット</td><td><strong>Reconcile Account</strong></td><td>検証失敗時（自動設定時）、手動実行</td></tr>
+</tbody></table></div>
+
+<div class="point-box">
+  <div class="big">🔁</div>
+  <div><p class="one">Verifyで「ズレ」に気づき、Reconcileで「ズレ」を直し、Changeで「漏れても使えない」状態を保つ。</p>
+  <p class="small muted">定期変更・定期検証の間隔はMaster Policyとプラットフォームで決めます（例：変更90日ごと、検証7日ごと。値は組織の規程に合わせる）。</p></div>
+</div>
+
+<h2>2. 変更処理の内部フロー</h2>
+<p>パスワード変更で一番怖いのは「ターゲットだけ新しいパスワードに変わったのに、Vaultに保存できず、誰も新しいパスワードを知らない」状態です。CPMはこれを避けるため、<strong>先にVaultへ新パスワードを控えてから</strong>ターゲットを変更します。</p>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図8-1：CPMによるパスワード変更（Change）</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":270,
+"nodes":[
+{"id":"vault","x":10,"y":60,"w":160,"h":70,"label":"Vault","sub":"現在PW／新PW（控え）","kind":"vault","s":[1,3,6]},
+{"id":"cpm","x":320,"y":60,"w":160,"h":70,"label":"CPM","sub":"hk-cpm01","kind":"comp","s":[1,2,3,4,5,6]},
+{"id":"t","x":630,"y":60,"w":160,"h":70,"label":"hk-web01","sub":"root","kind":"target","s":[4,5]}],
+"edges":[
+{"from":"vault","to":"cpm","label":"①対象と現在PWを取得","curve":-100,"s":[1]},
+{"from":"cpm","to":"vault","label":"③新PWを控えとして保存","curve":-100,"ly":18,"s":[3]},
+{"from":"cpm","to":"t","label":"④ログインして変更","curve":-90,"s":[4]},
+{"from":"t","to":"cpm","label":"⑤新PWで確認","curve":-90,"ly":18,"s":[5]},
+{"from":"cpm","to":"vault","label":"⑥新PWを正式な値に確定","curve":-230,"ly":20,"s":[6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="対象の取得">CPMは定期的にVaultを確認し、変更時期が来たアカウント（または手動で変更指示されたアカウント）と、その現在のパスワードを取得します。</li>
+<li data-label="新パスワード生成">プラットフォームのパスワードポリシー（長さ・文字種・禁止文字）に従い、新しいランダムなパスワードを生成します。</li>
+<li data-label="Vaultに控える">ターゲットを変更する前に、新パスワードをVaultへ「控え（変更途中の値）」として保存します。<strong>途中で失敗しても新パスワードが失われない</strong>ための仕組みです。</li>
+<li data-label="ターゲットを変更">現在のパスワード（またはLogon Account経由）でターゲットにログインし、パスワードを新しい値に変更します。依存先（サービス等）があれば併せて更新します。</li>
+<li data-label="新パスワードで確認">新しいパスワードで実際にログインできることを確認します。</li>
+<li data-label="正式な値に確定">成功したら、Vault上で新パスワードを「現在の値」として確定し、旧パスワードは履歴として保持されます。処理結果は監査ログに記録されます。</li>
+</ol>
+</figure>
+
+<h2>3. 調整（Reconcile）のフロー</h2>
+<p>誰かがCyberArkを通さずにパスワードを変えた、OSを再構築した、バックアップから戻した——こうした理由でVaultとターゲットのパスワードがズレることがあります。</p>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図8-2：検証失敗から調整（Reconcile）まで</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":330,
+"nodes":[
+{"id":"cpm","x":320,"y":120,"w":160,"h":60,"label":"CPM","kind":"comp","s":[1,2,3,4,5]},
+{"id":"vault","x":10,"y":120,"w":160,"h":60,"label":"Vault","sub":"Vault上のPW","kind":"vault","s":[2,3,5]},
+{"id":"t","x":630,"y":30,"w":160,"h":60,"label":"hk-fs01","sub":"Administrator","kind":"target","s":[1,4]},
+{"id":"rec","x":630,"y":210,"w":160,"h":60,"label":"調整用アカウント","sub":"svc_pam_reconcile","kind":"vault","s":[3,4]}],
+"edges":[
+{"from":"cpm","to":"t","label":"①検証→ログイン失敗","s":[1]},
+{"from":"cpm","to":"vault","label":"②「不一致」を記録","curve":-80,"ly":18,"s":[2]},
+{"from":"vault","to":"cpm","label":"③調整用PW取得","curve":-80,"s":[3]},
+{"from":"rec","to":"t","label":"④強制リセット","s":[4]},
+{"from":"cpm","to":"rec","dashed":true,"s":[4]},
+{"from":"cpm","to":"vault","label":"⑤新PWで同期回復","curve":-200,"ly":20,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="検証失敗">定期検証で、Vaultのパスワードでは <code>hk-fs01</code> のAdministratorにログインできませんでした。</li>
+<li data-label="不一致を記録">アカウントは「不一致（未同期）」の状態として記録され、PVWAにもエラーとして表示されます。</li>
+<li data-label="調整用アカウント取得">プラットフォームで「不一致時に自動調整」が有効なら（または手動でReconcileを実行すると）、CPMは関連付けられたReconcile Accountの資格情報をVaultから取得します。</li>
+<li data-label="強制リセット">Reconcile Accountの権限でターゲットにログインし、対象アカウントのパスワードを新しい値に強制リセットします（現在のパスワードを知らなくてもリセットできる権限が必要）。</li>
+<li data-label="同期回復">新パスワードをVaultに保存し、同期が回復します。<strong>なぜズレたのか（誰かが直接変更した？）は別途調査</strong>しましょう。不正の兆候である可能性もあります。</li>
+</ol>
+</figure>
+
+<h2>4. よくある失敗と切り分け</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>症状・エラーの傾向</th><th>よくある原因</th><th>確認すること</th></tr></thead>
+<tbody>
+<tr><td>接続できない・タイムアウト</td><td>FW遮断、DNS解決不可、ターゲット停止</td><td>CPMサーバからの疎通（ポート）・名前解決</td></tr>
+<tr><td>認証失敗（Verify失敗）</td><td>パスワード不一致、アカウントロック・失効</td><td>ターゲット側のロック状態、直接変更の有無 → Reconcile</td></tr>
+<tr><td>変更が拒否される</td><td>パスワードポリシー不一致（長さ・記号・履歴・最小有効期間）</td><td>ターゲットのポリシーとプラットフォーム設定を照合</td></tr>
+<tr><td>権限不足</td><td>Logon/Reconcile Accountの権限不足、sudo設定不足</td><td>連携アカウントの権限・sudoers</td></tr>
+<tr><td>Unix系で途中停止</td><td>プロンプト文字列の不一致（言語設定、独自のログインバナー等）</td><td>プラグインの詳細ログ、プロンプト設定</td></tr>
+<tr><td>変更されない（処理されない）</td><td>CPMがSafeに割り当てられていない、時間帯制限、自動管理が無効</td><td>Safeの担当CPM、プラットフォームの実行時間帯、アカウントの状態</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">ログの見方（Self-Hostedの例）</span>
+<p>CPMサーバのログフォルダには、全体の処理ログ（<code>pm.log</code>）とエラーログ（<code>pm_error.log</code>）があり、プラグインの詳細ログはデバッグを有効にしたときに出力されます。まずPVWA上のエラーメッセージで<strong>どの段階（接続・ログオン・変更・検証）で失敗したか</strong>を掴み、次にログで詳細を確認します。デバッグは調査後に必ず無効へ戻しましょう（ログ肥大化と情報露出の防止）。</p>
+</div>
+<div class="callout danger"><span class="ttl">連続失敗はアカウントロックを招く</span>
+<p>パスワード不一致のまま検証を繰り返すと、ターゲット側のロックアウトポリシーでアカウントがロックされることがあります。特にドメインアカウントでは業務影響が大きいので、エラーが続く場合は早めに自動管理を一時停止し、原因を調べます。</p>
+</div>
+
+<h2>5. CPMの配置設計</h2>
+<ul>
+<li><strong>Safeごとに担当CPMを1つ割り当てる</strong>：アカウントが多い場合や、ネットワークが分かれている場合はCPMを複数台にして担当Safeを分けます。</li>
+<li><strong>ターゲットに到達できる場所に置く</strong>：拠点やクラウドごとにCPMを置くことで、FW越えを最小化します（Privilege Cloudではコネクタとして配置）。</li>
+<li><strong>処理の集中を避ける</strong>：一斉に変更日を迎えないよう、登録時期を分散させる・時間帯を設定するなどの工夫をします。</li>
+</ul>
+
+<section class="review" id="review">
+<h2>振り返り問題（第8章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. Vaultのパスワードとターゲットのパスワードが食い違ったときに、高権限アカウントで強制リセットする操作は？</p>
+<ul class="rq-opts"><li>Verify</li><li>Reconcile</li><li>Change</li><li>Retrieve</li></ul>
+<div class="rq-exp">Reconcile（調整）です。Reconcile Accountの権限を使います。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q2. CPMがターゲットを変更する<strong>前</strong>に新パスワードをVaultへ控える理由は？</p>
+<ul class="rq-opts"><li>変更処理を高速化するため</li><li>録画を開始するため</li><li>途中で失敗しても新パスワードが失われないようにするため</li><li>利用者にメール通知するため</li></ul>
+<div class="rq-exp">ターゲットだけ変わってVaultに残らない事故を防ぐための仕組みです。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. 「パスワード変更は成功するのに、Unixの一部サーバだけ途中で止まる」。最初に疑う点として適切なのは？</p>
+<ul class="rq-opts"><li>プロンプト文字列（言語設定やログインバナー）の不一致</li><li>Vaultのディスク容量</li><li>PVWAの証明書期限</li><li>Masterユーザーのパスワード</li></ul>
+<div class="rq-exp">Unix系プラグインは画面のプロンプトを見て対話するため、言語設定やバナーの違いで止まることがあります。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q4. 検証失敗が続くドメインアカウントへの対応として最も適切なのは？</p>
+<ul class="rq-opts"><li>そのまま放置して自動で直るのを待つ</li><li>検証間隔を1分にする</li><li>Safeを削除する</li><li>ロックアウトの危険があるため自動管理を一時停止し、原因を調べる</li></ul>
+<div class="rq-exp">繰り返しの失敗ログオンはロックアウトを招きます。一時停止して原因を特定します。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

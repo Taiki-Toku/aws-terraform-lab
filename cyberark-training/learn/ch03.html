@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch03.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第3章 PAMのコアアーキテクチャ</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 03｜コア構成</div>
+  <h1>PAMのコアアーキテクチャ</h1>
+  <p class="lead">CyberArk PAMは「金庫（Vault）」を中心に、役割の異なる“係員”たちが周りを囲む構成です。この章で、各部品の役割と通信の向きを押さえます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">全体構成図 → 各コンポーネントの役割 → 通信とポート → 1回の特権利用で部品がどう連携するか（フロー）</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Vault・PVWA・CPM・PSM・PSM for SSH・PTAの役割を1行で説明できる</li>
+    <li>主要な通信の向きとポート（1858、443、3389、22）を説明できる</li>
+    <li>利用者が「Connect」を押してから録画が保存されるまでの流れを図で説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 75分</span><span class="chip">前提：第1・2章</span></div>
+</div>
+
+<h2>1. 全体構成</h2>
+<script class="dg" type="application/json">
+{"w":820,"h":420,"title":"PAM Self-Hosted 全体構成","caption":"図3-1：PAM Self-Hosted の全体構成（ヒカリ精機の例・架空）",
+"zones":[{"x":200,"y":10,"w":410,"h":400,"label":"PAMコンポーネント（hikari.example）"},{"x":630,"y":10,"w":180,"h":400,"label":"ターゲット"}],
+"nodes":[
+{"id":"u","x":10,"y":170,"w":150,"h":70,"label":"利用者・管理者","sub":"ブラウザ／RDP／SSH","kind":"user"},
+{"id":"pvwa","x":220,"y":50,"w":160,"h":60,"label":"PVWA","sub":"hk-pvwa01/02","kind":"comp"},
+{"id":"psm","x":220,"y":175,"w":160,"h":60,"label":"PSM","sub":"hk-psm01/02","kind":"comp"},
+{"id":"psmp","x":220,"y":300,"w":160,"h":60,"label":"PSM for SSH","sub":"hk-psmp01","kind":"comp"},
+{"id":"vault","x":430,"y":160,"w":160,"h":90,"label":"Digital Vault","sub":"hk-vault01\nTCP 1858","kind":"vault"},
+{"id":"cpm","x":430,"y":50,"w":160,"h":60,"label":"CPM","sub":"hk-cpm01","kind":"comp"},
+{"id":"pta","x":430,"y":310,"w":160,"h":60,"label":"PTA","sub":"hk-pta01","kind":"threat"},
+{"id":"win","x":650,"y":60,"w":140,"h":60,"label":"Windows","sub":"hk-fs01","kind":"target"},
+{"id":"lnx","x":650,"y":175,"w":140,"h":60,"label":"Linux","sub":"hk-web01","kind":"target"},
+{"id":"db","x":650,"y":290,"w":140,"h":60,"label":"Database","sub":"hk-db01","kind":"target"}],
+"edges":[
+{"from":"u","to":"pvwa","label":"HTTPS 443"},
+{"from":"u","to":"psm","label":"RDP 3389","ly":20},
+{"from":"u","to":"psmp","label":"SSH 22"},
+{"from":"pvwa","to":"vault","label":"1858"},
+{"from":"psm","to":"vault","label":"1858"},
+{"from":"psmp","to":"vault","label":"1858"},
+{"from":"cpm","to":"vault","label":"1858","ly":12,"lx":20},
+{"from":"pta","to":"vault","label":"1858"},
+{"from":"cpm","to":"win","dashed":true}
+]}
+</script>
+<p class="small muted">点線はCPMからターゲットへの接続の例です。PSM／PSM for SSHも同様に、セッション中継のためにターゲットへ接続します（図3-2参照）。</p>
+
+<div class="point-box">
+  <div class="big">🏦</div>
+  <div><p class="one">すべての部品は「Vaultに接続しに行く」。Vaultは真ん中で金庫番をしているだけ。</p>
+  <p class="small muted">PVWAもCPMもPSMも、資格情報・設定・ポリシーを毎回Vaultへ取りに行きます。Vaultが止まると、ほぼすべての機能が止まります。</p></div>
+</div>
+
+<h2>2. 各コンポーネントの役割</h2>
+<div class="callout analogy"><span class="ttl">銀行の貸金庫室</span>
+<p><strong>Vault</strong>＝地下の貸金庫室、<strong>PVWA</strong>＝窓口カウンター、<strong>CPM</strong>＝定期的に鍵を作り替える錠前師、<strong>PSM</strong>＝お客様に付き添い、作業を録画する警備員、<strong>PTA</strong>＝防犯カメラ映像を分析して不審者を見つけるAI監視員です。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>コンポーネント</th><th>正式名称</th><th>役割</th><th>主な稼働OS</th></tr></thead>
+<tbody>
+<tr><td><strong>Vault</strong></td><td>Digital Vault</td><td>資格情報・ポリシー・監査ログ・録画を暗号化して保管。権限チェックの最終判断者</td><td>Windows Server（専用・堅牢化）</td></tr>
+<tr><td><strong>PVWA</strong></td><td>Password Vault Web Access</td><td>利用者・管理者向けWeb画面。REST APIの窓口でもある</td><td>Windows Server（IIS）</td></tr>
+<tr><td><strong>CPM</strong></td><td>Central Policy Manager</td><td>ポリシーに従いパスワードを自動で変更・検証・調整</td><td>Windows Server</td></tr>
+<tr><td><strong>PSM</strong></td><td>Privileged Session Manager</td><td>RDP等のセッションを中継し、分離・録画・監視</td><td>Windows Server（RDS）</td></tr>
+<tr><td><strong>PSM for SSH</strong></td><td>Privileged Session Manager for SSH（PSMP）</td><td>SSHセッションを中継し、コマンド等を記録</td><td>Linux</td></tr>
+<tr><td><strong>PTA</strong></td><td>Privileged Threat Analytics</td><td>特権アクティビティを分析して脅威を検知・自動対応</td><td>Linux（アプライアンス型）</td></tr>
+<tr><td>PrivateArk Client</td><td>PrivateArk Client</td><td>Vaultへ直接接続する管理用クライアント（高度な管理・緊急時）</td><td>Windows</td></tr>
+<tr><td>DR Vault</td><td>Disaster Recovery Vault</td><td>本番Vaultの複製。障害時に切り替え</td><td>Windows Server</td></tr>
+</tbody></table></div>
+<div class="callout verify"><span class="ttl">OS・バージョン要件</span><p>サポートされるOSバージョン、.NET・IISなどの前提ソフトウェアはリリースごとに変わります。構築時は該当バージョンの「System Requirements」を必ず確認してください。</p></div>
+
+<h2>3. 通信とポート</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>通信元 → 通信先</th><th>ポート（既定）</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>PVWA / CPM / PSM / PSM for SSH / PTA → Vault</td><td><strong>TCP 1858</strong></td><td>Vault独自プロトコル（暗号化）での通信</td></tr>
+<tr><td>利用者 → PVWA</td><td>TCP 443（HTTPS）</td><td>Web画面・REST API</td></tr>
+<tr><td>利用者 → PSM</td><td>TCP 3389（RDP）</td><td>PSM経由のセッション（HTML5 Gateway利用時はHTTPS）</td></tr>
+<tr><td>利用者 → PSM for SSH</td><td>TCP 22（SSH）</td><td>SSHクライアントからの接続</td></tr>
+<tr><td>CPM / PSM → ターゲット</td><td>ターゲットのプロトコル（例：SSH 22、RDP 3389、Windowsの管理系ポート、DBのリスナーポート等）</td><td>パスワード変更・セッション中継</td></tr>
+<tr><td>Vault → DR Vault（DRサービス）</td><td>TCP 1858</td><td>データ複製</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">「1858」は絶対に覚える</span>
+<p>Vault関連の疎通トラブルの多くはFWでのTCP 1858遮断です。「PVWAでログインできない」「CPMがVaultに繋がらない」ときは、まず<code>Test-NetConnection 10.10.10.11 -Port 1858</code>（PowerShell）のように疎通を確認します。</p>
+</div>
+
+<h2>4. 1回の特権利用で部品がどう連携するか</h2>
+<p>新人の高橋さんが、Linuxサーバ <code>hk-web01</code> にPSM経由で接続する場面を例に、STEPを追ってみましょう。</p>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図3-2：PVWAからPSM経由で接続し、録画が保存されるまで</span></div>
+<script class="dg" type="application/json">
+{"w":820,"h":330,
+"nodes":[
+{"id":"u","x":10,"y":135,"w":140,"h":60,"label":"高橋さん","sub":"ブラウザ","kind":"user","s":[1,3,5]},
+{"id":"pvwa","x":220,"y":20,"w":150,"h":60,"label":"PVWA","kind":"comp","s":[1,2,3]},
+{"id":"vault","x":440,"y":135,"w":150,"h":70,"label":"Vault","sub":"権限・PW・録画","kind":"vault","s":[2,4,6,7]},
+{"id":"psm","x":220,"y":250,"w":150,"h":60,"label":"PSM","kind":"comp","s":[3,4,5,6]},
+{"id":"cpm","x":440,"y":20,"w":150,"h":60,"label":"CPM","kind":"comp","s":[7]},
+{"id":"t","x":660,"y":250,"w":150,"h":60,"label":"hk-web01","sub":"10.30.1.11","kind":"target","s":[5,7]}],
+"edges":[
+{"from":"u","to":"pvwa","label":"①ログイン","s":[1]},
+{"from":"pvwa","to":"vault","label":"②認証・権限確認","s":[2]},
+{"from":"u","to":"psm","label":"③Connect→RDP","s":[3]},
+{"from":"psm","to":"vault","label":"④PW取得","ly":22,"lx":20,"s":[4]},
+{"from":"psm","to":"t","label":"⑤代理ログイン","s":[5]},
+{"from":"psm","to":"vault","label":"⑥録画保存","off":-24,"ly":-14,"lx":-20,"s":[6]},
+{"from":"cpm","to":"t","label":"⑦PW変更","curve":-40,"s":[7]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="PVWAにログイン">高橋さんはブラウザで <code>https://pam.hikari.example/PasswordVault</code> を開き、社内ADのID＋MFAでログインします。</li>
+<li data-label="Vaultで認証・権限確認">PVWAはVaultへ（1858番ポートで）問い合わせ、高橋さんが<strong>どのSafeのどのアカウントを、どの操作で使えるか</strong>を確認します。権限の最終判断は常にVaultが行います。</li>
+<li data-label="Connectを押す">高橋さんは <code>hk-web01</code> の <code>root</code> アカウントを選び「Connect」を押します。PCのRDPクライアント（またはHTML5 Gateway）がPSMサーバへ接続します。<strong>高橋さんはパスワードを一度も見ません。</strong></li>
+<li data-label="PSMがパスワード取得">PSMは高橋さんの代わりにVaultから <code>root</code> のパスワードを取り出します。</li>
+<li data-label="代理ログインと中継">PSMがターゲットへログインし、画面を高橋さんへ中継します。操作はすべて録画・記録され、監査担当者はリアルタイムで監視することもできます。</li>
+<li data-label="録画をVaultへ保存">セッション終了後、録画データと操作ログはVaultへ保存され、PVWAから再生・検索できます。</li>
+<li data-label="CPMがパスワード変更">ポリシー（例：定期変更、ワンタイム設定）に従い、CPMが <code>root</code> のパスワードを自動で新しいものに変更し、Vaultの値も更新します。</li>
+</ol>
+</figure>
+
+<div class="callout tip"><span class="ttl">トラブル時は「どの矢印が切れたか」で考える</span>
+<p>上の図の矢印1本1本が、トラブルの切り分けポイントになります。例えば「PVWAにログインはできるがConnectで失敗」なら③〜⑤、「録画が再生できない」なら⑥を疑います。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第3章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. Vaultの既定の通信ポートは？</p>
+<ul class="rq-opts"><li>TCP 443</li><li>TCP 1858</li><li>TCP 3389</li><li>UDP 514</li></ul>
+<div class="rq-exp">TCP 1858です。PVWA・CPM・PSMなどはこのポートでVaultへ接続します。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q2. ポリシーに従ってターゲットのパスワードを自動変更するコンポーネントは？</p>
+<ul class="rq-opts"><li>PVWA</li><li>PSM</li><li>CPM</li><li>PTA</li></ul>
+<div class="rq-exp">CPM（Central Policy Manager）です。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. PSM経由の接続で、利用者がパスワードを知らなくても接続できる理由は？</p>
+<ul class="rq-opts"><li>PSMが利用者の代わりにVaultからパスワードを取得し、代理でログインするから</li><li>ターゲット側でパスワード認証を無効化しているから</li><li>PVWAが利用者のPCにパスワードを自動入力するから</li><li>CPMが接続のたびにパスワードを空にするから</li></ul>
+<div class="rq-exp">PSMが代理ログインするため、利用者はパスワードを見ません。これにより「パスワードを知っている人」を増やさずに済みます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q4. SSHセッションを中継・記録するLinux上のコンポーネントは？</p>
+<ul class="rq-opts"><li>PrivateArk Client</li><li>CPM</li><li>DR Vault</li><li>PSM for SSH（PSMP）</li></ul>
+<div class="rq-exp">PSM for SSH（PSMP）です。WindowsのPSMとは別のコンポーネントです。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

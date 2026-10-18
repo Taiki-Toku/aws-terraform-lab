@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch10.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第10章 PSMによるセッション管理</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 10｜利用・監視</div>
+  <h1>PSMによるセッション管理</h1>
+  <p class="lead">PSMは「付き添い付きの作業部屋」です。利用者は部屋の中から作業し、鍵（パスワード）は付き添い役が開けてくれます。部屋の中はすべて録画されます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">PSMが提供する3つの価値 → 接続の内部フロー（PSMConnect・シャドウユーザー）→ 接続方法の種類 → PSM for SSH → 監視・録画の運用 → よくあるトラブル</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>PSMの「分離・監視・記録」の価値を説明できる</li>
+    <li>Connectを押してからターゲットに入るまでの内部の流れを説明できる</li>
+    <li>PVWA・HTML5 Gateway・ネイティブクライアント・SSHなど接続方法の違いを説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 80分</span><span class="chip">前提：第3・6・9章</span><span class="chip warn">重点章</span></div>
+</div>
+
+<h2>1. PSMの3つの価値</h2>
+<div class="callout analogy"><span class="ttl">銀行の「貸金庫閲覧室」</span>
+<p>貸金庫の中身を確認するとき、お客様は行員に付き添われてガラス張りの閲覧室に入ります。箱を開けるのは行員（パスワードはお客様に渡らない）、部屋には防犯カメラ（録画）、不審な動きがあれば警備員がすぐ止められます（監視・切断）。</p>
+</div>
+<div class="grid">
+<div class="card"><h4>🧱 分離（Isolation）</h4><p class="small">利用者のPCとターゲットが直接つながらない。パスワードは利用者PCに渡らないため、<strong>利用者PCがマルウェアに感染していても資格情報を盗まれにくい</strong>。</p></div>
+<div class="card"><h4>👁 監視（Monitoring）</h4><p class="small">監査担当がセッションをリアルタイムで見られる。危険な操作を見つけたら<strong>一時停止・強制切断</strong>できる。</p></div>
+<div class="card"><h4>🎥 記録（Recording）</h4><p class="small">画面の録画と、キーストローク・SSHコマンド・SQL等の操作ログを保存。<strong>操作ログから録画の該当箇所へジャンプ</strong>して確認できる。</p></div>
+</div>
+
+<h2>2. 接続の内部フロー（Windows／RDP系）</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図10-1：PSM経由でWindowsサーバへ接続する内部の流れ</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":340,
+"zones":[{"x":200,"y":95,"w":400,"h":235,"label":"PSMサーバ（hk-psm01）"}],
+"nodes":[
+{"id":"vault","x":220,"y":10,"w":360,"h":50,"label":"Vault","sub":"権限確認・PW取得・録画保存","kind":"vault","s":[1,4,6]},
+{"id":"u","x":10,"y":150,"w":160,"h":60,"label":"利用者PC","sub":"RDPクライアント","kind":"user","s":[1,2]},
+{"id":"conn","x":220,"y":130,"w":160,"h":60,"label":"PSMConnect","sub":"受付用アカウント","kind":"comp","s":[2,3]},
+{"id":"shadow","x":220,"y":245,"w":160,"h":70,"label":"シャドウユーザー","sub":"利用者ごとの\n隔離された作業領域","kind":"comp","s":[3,4,5]},
+{"id":"cc","x":420,"y":185,"w":160,"h":60,"label":"接続コンポーネント","sub":"mstsc / SSH / SQL等","kind":"comp","s":[4,5,6]},
+{"id":"t","x":630,"y":185,"w":160,"h":60,"label":"hk-fs01","sub":"10.30.3.31","kind":"target","s":[5]}],
+"edges":[
+{"from":"u","to":"vault","label":"①Connect（PVWA経由で権限確認）","lx":-70,"ly":-8,"s":[1]},
+{"from":"u","to":"conn","label":"②RDP接続","lx":-8,"ly":-16,"s":[2]},
+{"from":"conn","to":"shadow","label":"③隔離領域へ切替","lx":50,"ly":4,"s":[3]},
+{"from":"shadow","to":"cc","s":[4]},
+{"from":"cc","to":"vault","label":"④PW取得","off":-16,"lx":-34,"s":[4]},
+{"from":"cc","to":"t","label":"⑤代理ログイン","ly":46,"s":[5]},
+{"from":"cc","to":"vault","label":"⑥録画保存","off":16,"dashed":true,"lx":40,"s":[6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="Connect要求">利用者がPVWAで対象アカウントの「Connect」を押すと、Vaultで権限（Use等）とポリシー（承認・理由入力）が確認されます。</li>
+<li data-label="PSMへRDP接続">利用者PCのRDPクライアント（またはHTML5 Gateway）がPSMサーバへ接続します。この入口では、受付用のPSMConnectアカウントが使われます。<strong>利用者はPSMサーバ自体に自由にログインできるわけではありません。</strong></li>
+<li data-label="隔離領域へ切替">PSMは利用者ごとの一時的なローカルプロファイル（シャドウユーザー）を用意し、セッションをその隔離された領域に切り替えます。他の利用者のセッションとは混ざりません。</li>
+<li data-label="パスワード取得と起動">PSMは指定された接続コンポーネント（RDPクライアント等）を起動し、Vaultから対象アカウントのパスワードを取得します。</li>
+<li data-label="代理ログインと中継">接続コンポーネントがターゲット <code>hk-fs01</code> にログインし、その画面を利用者へ中継します。録画と操作ログの取得が始まります。</li>
+<li data-label="録画をVaultへ">セッション終了後、録画と操作ログはVaultへ送られ、PVWAで検索・再生できるようになります。</li>
+</ol>
+</figure>
+<div class="callout tip"><span class="ttl">PSMAdminConnectとは</span>
+<p>PSMサーバには、受付用のPSMConnectのほかに、監査担当が<strong>ライブセッションを監視する</strong>ときに使われるPSMAdminConnectというアカウントもあります。どちらもPSMの内部用アカウントで、パスワードはCyberArkで管理します。期限切れ・ロックはPSMの接続障害の典型原因です。</p>
+</div>
+
+<h2>3. 接続方法の種類</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>方法</th><th>概要</th><th>向いている人</th></tr></thead>
+<tbody>
+<tr><td>PVWAから接続（RDPファイル）</td><td>PVWAで「Connect」→RDPファイルが開き、PCのRDPクライアントでPSMへ接続</td><td>標準的な利用者</td></tr>
+<tr><td><strong>HTML5 Gateway</strong></td><td>RDPクライアント不要。ブラウザのタブ内でセッションを開く</td><td>RDPクライアントを使えない端末、委託先</td></tr>
+<tr><td>ネイティブRDPクライアント（PSM for Windows）</td><td>PVWAを開かず、使い慣れたRDPクライアントからPSM経由で接続</td><td>多数のサーバを操作する管理者</td></tr>
+<tr><td>SSHクライアント（PSM for SSH）</td><td>普段使うSSHクライアントからPSM for SSHへ接続</td><td>Linux管理者</td></tr>
+<tr><td>Webアプリ・DBクライアント</td><td>PSM上でブラウザやSQLクライアントを起動して接続（接続コンポーネントで定義）</td><td>SaaS管理画面・DB管理者</td></tr>
+</tbody></table></div>
+
+<h2>4. PSM for SSH</h2>
+<p>PSM for SSH（PSMP）は、SSH接続を中継・記録するLinux上のコンポーネントです。利用者は普段のSSHクライアントのまま、接続先の指定方法だけ変えます。</p>
+<pre><code># 書式の例：&lt;Vaultユーザー&gt;@&lt;ターゲットのユーザー&gt;@&lt;ターゲットのアドレス&gt;@&lt;PSM for SSHのアドレス&gt;
+ssh a.takahashi@root@hk-web01.hikari.example@hk-psmp01.hikari.example</code></pre>
+<p class="small muted">実際の書式（区切り文字、ドメインの指定方法など）は環境とバージョンにより異なります。ヒカリ精機では運用手順書に記載しています。</p>
+<div class="callout key"><span class="ttl">SSHでは「コマンド」が記録される</span>
+<p>PSM for SSHでは、入力したコマンドがテキストで記録されるため、「誰が・いつ・どのサーバで <code>rm -rf</code> を打ったか」を検索できます。危険なコマンドの実行を検知・制限する仕組みと組み合わせることもできます。</p>
+</div>
+
+<h2>5. 監視・録画の運用</h2>
+<ul>
+<li><strong>ライブ監視</strong>：監査担当は進行中のセッションを一覧で見て、画面を覗く・一時停止・強制終了ができます（必要な権限が必要）。</li>
+<li><strong>録画の検索</strong>：アカウント、ターゲット、利用者、期間、入力コマンド等で録画を検索できます。</li>
+<li><strong>保管容量</strong>：録画はデータ量が大きくなります。保持期間（Safeの保持設定）と容量を規程に合わせて設計します。</li>
+<li><strong>PTA連携</strong>：危険な操作を検知したら自動で一時停止・終了する、といった連携が可能です（第12章）。</li>
+</ul>
+
+<h2>6. よくあるトラブル</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>症状</th><th>疑うポイント</th></tr></thead>
+<tbody>
+<tr><td>Connectを押しても何も起きない／RDPがつながらない</td><td>利用者PC→PSMの3389（またはHTML5 GatewayのHTTPS）がFWで遮断、ロードバランサ設定</td></tr>
+<tr><td>PSMには入れるがターゲットに接続できない</td><td>PSM→ターゲットの通信、ターゲット側のRDP/NLA設定、アカウントのパスワード不一致（→第8章のVerify/Reconcile）</td></tr>
+<tr><td>全員が突然接続できなくなった</td><td>PSMConnect／PSMAdminConnectのパスワード期限切れ・ロック、PSMサービス停止、証明書期限切れ</td></tr>
+<tr><td>特定の接続方式だけ起動しない</td><td>接続コンポーネントの設定、PSMサーバのアプリケーション実行制限（AppLocker等）で対象プログラムが許可されていない</td></tr>
+<tr><td>録画が再生できない</td><td>録画のアップロード失敗（PSM一時領域の容量不足、Vaultとの通信）</td></tr>
+</tbody></table></div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第10章）</h2>
+<div class="rq" data-correct="0"><p class="rq-q">Q1. PSMの「分離」により得られる効果として最も適切なのは？</p>
+<ul class="rq-opts"><li>利用者PCがマルウェアに感染していても、資格情報が利用者PCに渡らないため盗まれにくい</li><li>ターゲットのCPU負荷が下がる</li><li>パスワード変更が不要になる</li><li>承認が不要になる</li></ul>
+<div class="rq-exp">パスワードはPSM上で使われ、利用者PCに渡りません。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q2. 利用者のRDPセッションを受け付け、隔離された作業領域に切り替える際に使われる受付用アカウントは？</p>
+<ul class="rq-opts"><li>Master</li><li>Administrator</li><li>PSMConnect</li><li>Reconcile Account</li></ul>
+<div class="rq-exp">PSMConnectです。ライブ監視にはPSMAdminConnectが使われます。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q3. RDPクライアントが使えない端末から、ブラウザだけでPSMセッションを使う方法は？</p>
+<ul class="rq-opts"><li>PSM for SSH</li><li>HTML5 Gateway</li><li>PrivateArk Client</li><li>CPM</li></ul>
+<div class="rq-exp">HTML5 Gatewayを使うと、ブラウザのタブ内でセッションを開けます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q4. ある朝、全利用者がPSM経由で接続できなくなった。最初に確認すべきこととして適切なのは？</p>
+<ul class="rq-opts"><li>個々のターゲットのパスワード</li><li>Safe名の命名規則</li><li>録画の保持期間</li><li>PSMの内部アカウント（PSMConnect等）の期限切れ・ロックやPSMサービスの状態</li></ul>
+<div class="rq-exp">全員が同時に失敗する場合は、個別アカウントではなく共通部分（PSMサービス・内部アカウント・証明書・通信）を疑います。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

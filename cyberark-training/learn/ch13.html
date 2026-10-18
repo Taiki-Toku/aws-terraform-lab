@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch13.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第13章 アプリケーションとシークレット管理</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 13｜発展</div>
+  <h1>アプリケーションとシークレット管理</h1>
+  <p class="lead">人ではなく「プログラム」が使うパスワードやAPIキー（シークレット）をどう守るか。設定ファイルへのパスワード直書きをなくすための仕組みを学びます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">ハードコードの問題 → 「シークレット・ゼロ」問題 → Credential Provider（CP）と Central Credential Provider（CCP）→ CCPでの取得フロー → Secrets Manager（旧Conjur）→ Secrets Hub → 使い分け</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>アプリのパスワード直書きのリスクと、「シークレット・ゼロ」問題を説明できる</li>
+    <li>CPとCCPの違い、アプリ認証（Application ID）の仕組みを説明できる</li>
+    <li>CP/CCP・Secrets Manager・Secrets Hubを、アプリの種類に応じて使い分けられる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 75分</span><span class="chip">前提：第6〜8章</span></div>
+</div>
+
+<h2>1. ハードコードの問題</h2>
+<p>開発チームの中村さんのアプリは、設定ファイルに次のように書かれていました（架空の例）。</p>
+<pre><code># /opt/hk-sales/config/db.properties
+db.url=jdbc:oracle:thin:@hk-db01.hikari.example:1521/SALES
+db.user=appuser
+db.password=Hikari2019!   ← 平文のまま、7年間変更なし</code></pre>
+<div class="callout danger"><span class="ttl">直書き（ハードコード）が危険な理由</span>
+<ul>
+<li>サーバに入れた人・ソースコードを見た人なら誰でもパスワードを知ることができる</li>
+<li>Git等のリポジトリやバックアップ、チャットに貼られて拡散する</li>
+<li>変更するとアプリが止まるため、<strong>何年も変更されない</strong></li>
+<li>同じパスワードが複数環境で使い回されがち</li>
+</ul>
+</div>
+
+<h3>「シークレット・ゼロ」問題</h3>
+<div class="callout analogy"><span class="ttl">金庫の鍵を、どこにしまうか</span>
+<p>「パスワードは金庫（Vault）に入れました。アプリは金庫から取り出します」——では、<strong>アプリが金庫を開けるための鍵</strong>はどこに置くのでしょうか？それを設定ファイルに書いたら元の木阿弥です。この「最初の1つの秘密」をどう扱うかが<strong>シークレット・ゼロ問題</strong>です。CyberArkは、<strong>パスワードの代わりに「アプリ自身の属性」（どのマシンで、どのOSユーザーで、どのプログラムが動いているか、証明書、クラウドやKubernetesが発行するID）</strong>で本人確認することで、この問題を解決します。</p>
+</div>
+
+<h2>2. Credential Provider（CP）とCentral Credential Provider（CCP）</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>CP（Credential Provider）</th><th>CCP（Central Credential Provider）</th></tr></thead>
+<tbody>
+<tr><td>形態</td><td>アプリサーバに<strong>エージェントを導入</strong></td><td><strong>エージェント不要</strong>。中央のWebサービスにREST等で問い合わせ</td></tr>
+<tr><td>可用性</td><td>ローカルキャッシュを持ち、Vaultに一時的に接続できなくても取得可能</td><td>CCPサーバの冗長化（複数台＋ロードバランサ）で確保</td></tr>
+<tr><td>アプリ認証</td><td>OSユーザー、実行パス、ハッシュ、許可マシン等</td><td>許可マシン（送信元IP）、クライアント証明書等</td></tr>
+<tr><td>向いている場面</td><td>エージェントを入れられるサーバ、高い可用性が必要</td><td>エージェントを入れられない機器・アプライアンス・外部製品との連携（RPA等）</td></tr>
+</tbody></table></div>
+<p>アプリケーションサーバのデータソース（接続プール）向けに、アプリのコードを変えずに資格情報を提供する仕組み（ASCP）もあります。</p>
+
+<h3>アプリをVaultに登録する（Application ID）</h3>
+<ol>
+<li>PVWAでアプリケーションを登録し、<strong>Application ID</strong>（例：<code>HK-SalesApp</code>）を決める</li>
+<li>アプリ認証の条件を設定する（許可マシン <code>10.30.1.21</code>、クライアント証明書、OSユーザー等）</li>
+<li>アプリ用Safe（<code>HK-PRD-APP-ORA-APPUSR</code>）に、アプリ（Application ID）と、CP/CCPのProviderをメンバーとして追加する（主に<strong>List accounts と Retrieve accounts</strong>。Providerにはさらに View Safe members 等が必要）</li>
+<li>人のメンバーにはRetrieveを付けない（人は見られない設計にする）</li>
+</ol>
+
+<h2>3. CCPでのパスワード取得の流れ</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図13-1：アプリがCCP経由でDBパスワードを取得する</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":320,
+"nodes":[
+{"id":"app","x":10,"y":60,"w":160,"h":70,"label":"販売アプリ","sub":"hk-app01\n10.30.1.21","kind":"user","s":[1,5]},
+{"id":"ccp","x":310,"y":60,"w":170,"h":70,"label":"CCP","sub":"Webサービス\nhk-ccp01","kind":"comp","s":[1,2,3,4,5]},
+{"id":"vault","x":620,"y":60,"w":170,"h":70,"label":"Vault","sub":"アプリ用Safe","kind":"vault","s":[3,4,6]},
+{"id":"db","x":10,"y":230,"w":160,"h":70,"label":"hk-db01","sub":"appuser","kind":"target","s":[5,6]},
+{"id":"cpm","x":310,"y":230,"w":170,"h":70,"label":"CPM","kind":"comp","s":[6]}],
+"edges":[
+{"from":"app","to":"ccp","label":"①HTTPS要求（証明書）","curve":-30,"s":[1]},
+{"from":"ccp","to":"app","label":"⑤PW返却","curve":-30,"ly":16,"s":[5]},
+{"from":"ccp","to":"vault","label":"③取得","curve":-30,"s":[3]},
+{"from":"vault","to":"ccp","label":"④","curve":-30,"ly":16,"s":[4]},
+{"from":"app","to":"db","label":"⑤DB接続","lx":40,"ly":4,"s":[5]},
+{"from":"cpm","to":"db","label":"⑥定期変更","s":[6]},
+{"from":"vault","to":"cpm","dashed":true,"s":[6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="取得要求">アプリは起動時（または接続時）に、CCPへHTTPSで「Application ID＝HK-SalesApp、Safe＝HK-PRD-APP-ORA-APPUSR、対象＝appuser」のパスワードを要求します。クライアント証明書を提示します。
+<pre style="margin:8px 0 0"><code>GET https://ccp.hikari.example/AIMWebService/api/Accounts?AppID=HK-SalesApp&amp;Safe=HK-PRD-APP-ORA-APPUSR&amp;Object=...</code></pre>
+<span class="small muted">※URLやパラメータの詳細は公式ドキュメントの該当バージョンを確認してください。</span></li>
+<li data-label="アプリ認証">CCPは、要求元が登録された条件（送信元IPが許可マシンか、証明書が正しいか）を満たすか確認します。<strong>パスワードではなく「アプリの属性」で本人確認</strong>します。</li>
+<li data-label="Vaultから取得">認証に成功したら、CCPのProviderがVaultのアプリ用Safeから資格情報を取り出します。</li>
+<li data-label="結果を受け取る">Vaultでも権限（Application IDとProviderのSafe権限）が確認され、資格情報が返されます。すべての取得は監査ログに残ります。</li>
+<li data-label="アプリへ返却・DB接続">CCPはアプリにパスワードを返し、アプリはそれを使ってDBに接続します。設定ファイルにパスワードは存在しません。</li>
+<li data-label="定期変更">CPMが定期的にappuserのパスワードを変更します。アプリは次回の取得で新しいパスワードを受け取るため、<strong>アプリを止めずにパスワードを変えられます</strong>（接続プールの再接続タイミング等は設計が必要）。</li>
+</ol>
+</figure>
+
+<h2>4. Secrets Manager（旧 Conjur）</h2>
+<p>コンテナ、Kubernetes、CI/CDパイプラインなど、<strong>短時間で大量に生まれては消えるワークロード</strong>向けのシークレット管理です。SaaS版とSelf-Hosted版があります。</p>
+<ul>
+<li><strong>ポリシー・アズ・コード</strong>：誰（どのワークロード）がどのシークレットを使えるかを、コード（YAML等）で定義・レビューできる</li>
+<li><strong>プラットフォームのIDで認証</strong>：Kubernetesのサービスアカウント、クラウドのIAMロール、JWTなどを使い、シークレット・ゼロ問題を解消</li>
+<li><strong>PAMとの同期</strong>：VaultのSafeに入っているアカウントを同期して、CPMによる自動変更の恩恵を受けられる構成がある</li>
+</ul>
+
+<h2>5. Secrets Hub</h2>
+<div class="callout analogy"><span class="ttl">本社の金庫と各支店の金庫</span>
+<p>AWS Secrets ManagerやAzure Key Vaultは「各クラウドに備え付けの金庫（支店の金庫）」です。開発者は使い慣れたその金庫を使いたい。一方セキュリティ部門は、ローテーションや監査を本社（CyberArk）で一元管理したい。Secrets Hubは、<strong>本社金庫の中身を支店金庫に自動で配送・同期する仕組み</strong>です。</p>
+</div>
+<ul>
+<li>CyberArk（Privilege Cloud／Self-Hosted）で管理・ローテーションしたシークレットを、クラウドのシークレットストアへ同期</li>
+<li>アプリは<strong>クラウドの標準API</strong>のまま使えるため、アプリ改修が少ない</li>
+<li>クラウドのシークレットストアにある既存シークレットを発見・可視化し、CyberArkの管理下へ取り込む機能も拡充されている（2025年のアップデート）</li>
+</ul>
+
+<h2>6. 使い分け</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>アプリの種類</th><th>第一候補</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>オンプレの従来型業務アプリ（エージェント導入可）</td><td>CP</td><td>ローカルキャッシュで高可用</td></tr>
+<tr><td>アプライアンス・パッケージ製品・RPA</td><td>CCP</td><td>エージェント不要、製品側の連携機能が対応していることが多い</td></tr>
+<tr><td>Kubernetes・コンテナ・CI/CD</td><td>Secrets Manager</td><td>ワークロードIDで認証、ポリシー・アズ・コード</td></tr>
+<tr><td>クラウドネイティブアプリ（AWS/Azure等の標準ストアを利用）</td><td>Secrets Hub</td><td>アプリ改修を最小にしつつ一元管理</td></tr>
+</tbody></table></div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第13章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. 「シークレット・ゼロ問題」の説明として正しいものは？</p>
+<ul class="rq-opts"><li>Vaultにパスワードが1件もない状態</li><li>アプリが金庫を開けるための「最初の秘密」をどこに置くかという問題</li><li>パスワードの長さが0文字になる不具合</li><li>CPMが停止している状態</li></ul>
+<div class="rq-exp">CyberArkはパスワードの代わりにアプリの属性やプラットフォームIDで認証して解決します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. エージェントを導入できないアプライアンスからパスワードを取得させたい。適切なのは？</p>
+<ul class="rq-opts"><li>CCP</li><li>CP</li><li>PSM for SSH</li><li>EPM</li></ul>
+<div class="rq-exp">CCPはエージェント不要のWebサービス型です。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. CPの特徴として正しいものは？</p>
+<ul class="rq-opts"><li>エージェント不要</li><li>人のRDP接続を録画する</li><li>クラウドのシークレットストアと同期する</li><li>ローカルキャッシュを持ち、Vaultに一時的に接続できなくても取得できる</li></ul>
+<div class="rq-exp">CPはエージェント型でローカルキャッシュを持つため可用性が高いのが特徴です。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. AWS Secrets Managerを使うアプリを改修せずに、ローテーションと監査をCyberArkで一元管理したい。適切なのは？</p>
+<ul class="rq-opts"><li>PSM</li><li>EPM</li><li>Secrets Hub</li><li>PrivateArk Client</li></ul>
+<div class="rq-exp">Secrets HubはCyberArkで管理したシークレットをクラウドのストアへ同期します。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

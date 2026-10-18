@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="references.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出典と公式ナレッジ</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">はじめに｜参考出典・公式ナレッジ</div>
+  <h1>参考出典・公式ナレッジ</h1>
+  <p class="lead">困ったときに「どこを見れば正しい答えがあるか」を知っておくことは、製品知識そのものより大切です。</p>
+  <ul class="goal-list">
+    <li>公式ドキュメント・公式トレーニング・コミュニティの使い分けがわかる</li>
+    <li>本教材の各記述がどの情報で裏付けられているか（検証状況）を確認できる</li>
+  </ul>
+</div>
+
+<div class="callout analogy"><span class="ttl">情報源は「病院」と同じ</span>
+<p>公式ドキュメントは<strong>主治医の診断書</strong>、公式ナレッジベース（サポート記事）は<strong>専門医の所見</strong>、コミュニティやブログは<strong>知人の体験談</strong>です。体験談は参考になりますが、最終判断は必ず診断書（公式ドキュメント）で行います。</p>
+</div>
+
+<h2>公式情報源</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>情報源</th><th>URL</th><th>使いどころ</th></tr></thead>
+<tbody>
+<tr><td>CyberArk Docs（公式ドキュメントポータル）</td><td><a href="https://docs.cyberark.com/" target="_blank" rel="noopener">docs.cyberark.com</a></td><td>製品ごとの設計・インストール・設定・リリースノート。<strong>右上でバージョンを必ず合わせる</strong>（PAM Self-Hosted / Privilege Cloud / Identity Security Platform Shared Services / Secure Infrastructure Access / Endpoint Privilege Manager / Secrets Manager / Secrets Hub など）</td></tr>
+<tr><td>ISPSS 導入ドキュメント</td><td><a href="https://docs.cyberark.com/ispss-deployment" target="_blank" rel="noopener">docs.cyberark.com/ispss-deployment</a></td><td>SaaSプラットフォーム（Identity Security Platform Shared Services）の初期構築・コネクタ要件</td></tr>
+<tr><td>製品名の変更通知</td><td><a href="https://www.cyberark.com/product-name-updates/" target="_blank" rel="noopener">cyberark.com/product-name-updates</a></td><td>旧名⇔新名の対応（例：Conjur Cloud → Secrets Manager, SaaS）</td></tr>
+<tr><td>CyberArk 公式サイト／製品発表</td><td><a href="https://www.cyberark.com/resources/product-announcements-blog" target="_blank" rel="noopener">cyberark.com/resources</a></td><td>新機能の発表、ホワイトペーパー、データシート</td></tr>
+<tr><td>CyberArk Training（CyberArk University）</td><td><a href="https://training.cyberark.com/" target="_blank" rel="noopener">training.cyberark.com</a></td><td>公式eラーニング・認定資格（Defender / Sentry / Guardian など）</td></tr>
+<tr><td>CyberArk Community / サポートポータル</td><td><a href="https://community.cyberark.com/" target="_blank" rel="noopener">community.cyberark.com</a></td><td>ナレッジ記事（KB）、ソフトウェアダウンロード、ケース起票（要アカウント）</td></tr>
+<tr><td>CyberArk Marketplace</td><td>コミュニティ／サポートポータルから遷移</td><td>プラグイン（CPMプラグイン・PSMコネクタ）や連携モジュール</td></tr>
+<tr><td>CyberArk GitHub</td><td><a href="https://github.com/cyberark" target="_blank" rel="noopener">github.com/cyberark</a></td><td>公式のOSS・ツール（例：<a href="https://github.com/cyberark/CYBRHardeningCheck" target="_blank" rel="noopener">CYBRHardeningCheck</a>＝コンポーネント堅牢化チェック）</td></tr>
+</tbody></table></div>
+
+<div class="callout key"><span class="ttl">ドキュメントは「製品×バージョン」で引く</span>
+<p>Self-Hosted（オンプレ）とPrivilege Cloud（SaaS）では、同じ機能名でも画面・手順・制約が異なります。検索で出てきたページの<strong>製品名とバージョン表記</strong>を必ず確認してください。</p>
+</div>
+
+<h2>本教材の検証方針と検証状況</h2>
+<p>本教材では、ハルシネーション（もっともらしい誤情報）を避けるため、主要な記述について次の手順で正誤判定を行いました。</p>
+<ol>
+<li>公式情報（CyberArk公式サイト・公式ドキュメントの公開記載、公式GitHub、公式の製品名変更通知など）を検索して記載内容を確認</li>
+<li>独立した複数の情報源（大学の公開手順書、連携ベンダーの公式ドキュメント、実務者の検証記事など）と突き合わせ、内容が一致するかを確認</li>
+<li>一致しない、または公式情報で確認できなかった事項は、断定を避けて「要確認」と明記</li>
+</ol>
+
+<div class="callout danger"><span class="ttl">検証時の制約（正直な開示）</span>
+<p>本教材の作成環境では <code>docs.cyberark.com</code> および <code>www.cyberark.com</code> への直接アクセスがネットワークポリシーで制限されていたため、公式ページの内容は<strong>検索エンジン経由で取得できた公式ページの記載</strong>および<strong>公式ドキュメントを引用している二次情報</strong>で照合しています。研修で使用する前に、講師が公式ドキュメント（該当バージョン）で下表の「要確認」項目を最終確認することを推奨します。</p>
+</div>
+
+<div class="table-wrap"><table>
+<thead><tr><th>主な記述</th><th>章</th><th>照合した情報</th><th>判定</th></tr></thead>
+<tbody>
+<tr><td>Palo Alto NetworksによるCyberArk買収は2026年2月11日に完了</td><td>2</td><td>Palo Alto Networks 10-Q（SEC提出書類）、複数の報道</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>2026年5月、CyberArk技術を基盤とする新ブランド「Idira」発表。CyberArk名も併存</td><td>2</td><td>CyberArk公式サイトの表記（“CyberArk is now Idira”）、複数の報道</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Conjur Cloud → Secrets Manager, SaaS／Conjur Enterprise → Secrets Manager, Self-Hosted に改称</td><td>2, 13</td><td>CyberArk公式「Product Name Updates」</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>PAM Self-Hosted v15 は2025年12月15日リリース、Standard-Term Support（STS）</td><td>2, 15</td><td>公式告知を転載した実務者記事（公式ページは直接未確認）</td><td><span class="chip warn">要確認</span></td></tr>
+<tr><td>Vault の通信ポートは TCP 1858（既定）</td><td>3, 4</td><td>公式インストールパラメータ表の転載、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Vaultはインストール時にWindowsファイアウォールを制御し、既定で1858のみ許可。ドメイン非参加・専用サーバが原則</td><td>4</td><td>公式GitHub CYBRHardeningCheck（Vault_DomainJoined チェック）、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Masterユーザーは全Safeに自動で全権限を持つ緊急用ユーザー、ログインにはリカバリキー（Master CD）が必要</td><td>4</td><td>CyberArk研修資料の公開スライド、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Safe権限「List / Use / Retrieve accounts」の意味</td><td>6</td><td>大学の公開手順書（Privilege Cloud）、連携ベンダー公式ドキュメント、psPASモジュール</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>CPMは変更・検証・調整（Reconcile）を行い、調整用アカウントはプラットフォームまたはアカウント単位で設定</td><td>7, 8</td><td>Ansible公式コレクション文書、複数の構築記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Master Policy：理由入力・二重承認・排他パスワード・ワンタイムパスワード・セッション記録</td><td>9</td><td>複数の構築記事・ラボ記録</td><td><span class="chip ok">一致</span>（既定値はバージョンで要確認）</td></tr>
+<tr><td>PSMはPSMConnectでRDP接続を受け、シャドウユーザーに切り替えて接続コンポーネントを起動</td><td>10</td><td>複数の実務者記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>PTAは資格情報窃取の疑い・管理外特権アクセス等を検知し、自動ローテーションやセッション停止で対応可能</td><td>12</td><td>CyberArk公式GitHub、SIEM連携ベンダー文書、CyberArk公式ブログ</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>CCPはエージェントレスのWebサービス、CPはローカルキャッシュを持つエージェント型</td><td>13</td><td>連携ベンダー公式ドキュメント（UiPath等）、CyberArk公式発表</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>Secrets HubはAWS等のクラウドネイティブなシークレットストアとPAMを同期</td><td>13</td><td>CyberArk公式ブログ（2025年7月）、第三者比較記事</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>SIA（旧DPA）はサーバ・DB・KubernetesへのJIT・一時的な資格情報でのアクセスを提供</td><td>14</td><td>CyberArk公式データシート・公式ソリューションページ、政府調達カタログ</td><td><span class="chip ok">一致</span></td></tr>
+<tr><td>EPMはSaaSで提供、オンプレ版は2023年12月31日でEOL</td><td>14</td><td>第三者製品DB、政府調達カタログ</td><td><span class="chip warn">要確認</span></td></tr>
+<tr><td>Privilege Cloudのコネクタはインターネット向けアウトバウンド通信が基本（インバウンド不要）</td><td>5</td><td>実務者記事、公式SIA紹介記事（VPNレス・インバウンド不要）</td><td><span class="chip warn">要確認</span>（ポート・宛先はバージョンで確認）</td></tr>
+<tr><td>CyberArk Blueprintの段階的導入（段階名は新人向け要約）</td><td>15</td><td>CyberArk公式Blueprintページ（段階的・リスクベースであることを確認。各段階の正式名称は全文未確認）</td><td><span class="chip warn">要確認</span></td></tr>
+<tr><td>Safe名の最大長（28文字）</td><td>6</td><td>実務上の通説（本作成時に公式記載は直接未確認）</td><td><span class="chip warn">要確認</span></td></tr>
+</tbody></table></div>
+
+<h2>参照した主な外部情報（公式以外を含む）</h2>
+<ul class="small">
+<li><a href="https://www.sec.gov/Archives/edgar/data/1327567/000132756726000005/panw-20260131.htm" target="_blank" rel="noopener">Palo Alto Networks Form 10-Q（FY2026）</a></li>
+<li><a href="https://www.sdxcentral.com/news/palo-alto-networks-rebrands-cyberark-with-idira-platform-release/" target="_blank" rel="noopener">SDxCentral：Palo Alto Networks rebrands CyberArk with Idira</a> ／ <a href="https://siliconangle.com/2026/05/12/idira-launches-palo-alto-networks-extends-cyberark-tech-machine-agentic-identities/" target="_blank" rel="noopener">SiliconANGLE（2026/05/12）</a></li>
+<li><a href="https://www.cyberark.com/product-name-updates/" target="_blank" rel="noopener">CyberArk：Product Name Updates</a></li>
+<li><a href="https://www.cyberark.com/resources/product-announcements/cyberark-privileged-access-manager-self-hosted-v14-0-40-customer-enhancement-requests" target="_blank" rel="noopener">CyberArk：PAM Self-Hosted v14.0 発表</a> ／ <a href="https://blog.51sec.org/2026/08/cyberark-privileged-access-manager.html" target="_blank" rel="noopener">v15.x 情報まとめ（実務者ブログ）</a></li>
+<li><a href="https://www.cyberark.com/resources/machine-identity-security/secrets-managed-smarter-and-faster-with-cyberark-s-automation-updates" target="_blank" rel="noopener">CyberArk：Secrets Hub 等のアップデート（2025）</a></li>
+<li><a href="https://www.cyberark.com/resources/product-datasheets/cyberark-dynamic-privileged-access" target="_blank" rel="noopener">CyberArk：Dynamic Privileged Access データシート</a> ／ <a href="https://www.cyberark.com/resources/cloud-security/zero-standing-privileges-the-essentials" target="_blank" rel="noopener">Zero Standing Privileges: The Essentials</a></li>
+<li><a href="https://github.com/cyberark/CYBRHardeningCheck" target="_blank" rel="noopener">GitHub：cyberark/CYBRHardeningCheck</a> ／ <a href="https://github.com/cyberark/Forward-AWS-logs-to-PAS" target="_blank" rel="noopener">GitHub：cyberark/Forward-AWS-logs-to-PAS</a></li>
+<li><a href="https://kb.wisc.edu/security/page.php?id=110939" target="_blank" rel="noopener">University of Wisconsin KB：CyberArk</a> ／ <a href="https://docs.venafi.com/Docs/26.1/TopNav/Content/Credentials/t-CyberArk-elevate-permissions.php" target="_blank" rel="noopener">Venafi Docs：CyberArk連携の権限要件</a></li>
+<li><a href="https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores" target="_blank" rel="noopener">UiPath Docs：Credential Store連携（CCP / Secrets Manager）</a></li>
+<li><a href="https://docs.ansible.com/ansible/7/collections/cyberark/pas/cyberark_account_module.html" target="_blank" rel="noopener">Ansible Docs：cyberark.pas.cyberark_account</a></li>
+<li><a href="https://www.elastic.co/docs/reference/integrations/cyberark_pta" target="_blank" rel="noopener">Elastic Docs：CyberArk PTA integration</a></li>
+<li><a href="https://blog.51sec.org/2023/12/understanding-cyberark-cpm.html" target="_blank" rel="noopener">NetSec：Understanding CyberArk CPM</a> ／ <a href="https://51sec.org/2020/06/02/cyberark-notes-2" target="_blank" rel="noopener">NetSec：CyberArk Notes（PSM）</a></li>
+</ul>
+<p class="small muted">※二次情報は「公式記載の補強」としてのみ使用しています。</p>
+
+</div></main>
+<script src="assets/app.js"></script>
+</body>
+</html>

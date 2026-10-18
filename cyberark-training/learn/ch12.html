@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch12.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第12章 脅威検知・監査・レポート</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 12｜利用・監視</div>
+  <h1>脅威検知・監査・レポート</h1>
+  <p class="lead">「使われたらすぐ気づく」を実現するのがこの章の領域です。不審な動きを自動で見つけるPTAと、監査・コンプライアンスのためのログ・レポートを学びます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">PTAの役割と入力データ → 主な検知の種類 → 資格情報窃取の検知と自動対応（フロー）→ 監査ログ・レポート → SIEM連携 → 監査対応の勘所</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>PTAが検知する代表的な脅威（資格情報窃取の疑い・管理外の特権アクセス・危険なセッション操作）を説明できる</li>
+    <li>検知から自動対応（ローテーション・セッション停止）までの流れを説明できる</li>
+    <li>監査対応で使うログ・レポート・録画の使い分けができる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 60分</span><span class="chip">前提：第8・10章</span></div>
+</div>
+
+<h2>1. PTA（Privileged Threat Analytics）の役割</h2>
+<div class="callout analogy"><span class="ttl">防犯カメラの映像を見続けるAI警備員</span>
+<p>録画（PSM）や入退室記録（Vaultの監査ログ）は、あとから見返すためのものです。PTAは、それらの記録や社内のログを<strong>リアルタイムで突き合わせ</strong>、「鍵を借りていないのに部屋に入った人がいる」「深夜にいつもと違う部屋を開けている」といった不審な動きを見つけて知らせ、必要なら自動で鍵を替えます。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>入力データ（例）</th><th>何がわかるか</th></tr></thead>
+<tbody>
+<tr><td>Vaultの監査ログ</td><td>誰がいつどのアカウントを取り出した・使ったか</td></tr>
+<tr><td>PSM／PSM for SSHのセッション情報</td><td>セッション中に何のコマンド・操作をしたか</td></tr>
+<tr><td>ドメインコントローラ・サーバのログ（SIEM経由や専用の収集機構）</td><td>実際にどのアカウントでどこへログオンしたか</td></tr>
+</tbody></table></div>
+
+<h2>2. 主な検知の種類</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>検知</th><th>考え方</th><th>例</th></tr></thead>
+<tbody>
+<tr><td><strong>資格情報窃取の疑い</strong></td><td>Vaultから取り出されていないのに、管理対象の特権アカウントでログオンがあった</td><td>Pass-the-Hash等で盗んだ資格情報の利用</td></tr>
+<tr><td><strong>管理外の特権アクセス</strong></td><td>CyberArkに登録されていない特権アカウントが使われた</td><td>誰かが勝手に作った管理者アカウント</td></tr>
+<tr><td><strong>危険なセッション操作</strong></td><td>セッション中に登録された危険なコマンド・操作が行われた</td><td>監査ログ削除、ユーザー追加、全データ削除コマンド</td></tr>
+<tr><td><strong>振る舞いの異常</strong></td><td>普段の利用パターン（時間帯・頻度・対象）から外れた利用</td><td>深夜に大量のアカウントを取り出す</td></tr>
+<tr><td>Kerberos関連攻撃などの兆候</td><td>認証プロトコルの不正な使い方を検出</td><td>※対応範囲は製品バージョン・構成により異なる</td></tr>
+</tbody></table></div>
+
+<h2>3. 資格情報窃取の検知と自動対応</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図12-1：「資格情報窃取の疑い」を検知して自動ローテーションするまで</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":300,
+"nodes":[
+{"id":"atk","x":10,"y":10,"w":150,"h":60,"label":"不審な利用者","sub":"盗んだ資格情報","kind":"threat","s":[1]},
+{"id":"t","x":10,"y":200,"w":150,"h":60,"label":"hk-fs01","sub":"Administrator","kind":"target","s":[1,2,5,6]},
+{"id":"log","x":225,"y":200,"w":150,"h":60,"label":"ログ収集","sub":"DC・サーバのログ","kind":"comp","s":[2,3]},
+{"id":"pta","x":440,"y":120,"w":150,"h":65,"label":"PTA","sub":"hk-pta01","kind":"threat","s":[3,4,5]},
+{"id":"vault","x":440,"y":0,"w":150,"h":55,"label":"Vault","sub":"取り出し記録","kind":"vault","s":[3]},
+{"id":"soc","x":650,"y":220,"w":140,"h":60,"label":"SOC／SIEM","sub":"アラート・調査","kind":"user","s":[4,6]},
+{"id":"cpm","x":650,"y":20,"w":140,"h":60,"label":"CPM","sub":"自動ローテーション","kind":"comp","s":[5]}],
+"edges":[
+{"from":"atk","to":"t","label":"①直接ログオン","lx":44,"ly":0,"s":[1]},
+{"from":"t","to":"log","label":"②記録","s":[2]},
+{"from":"log","to":"pta","label":"③","s":[3]},
+{"from":"vault","to":"pta","label":"③取り出し記録なし","lx":-66,"ly":4,"s":[3]},
+{"from":"pta","to":"soc","label":"④アラート","s":[4]},
+{"from":"pta","to":"cpm","label":"⑤PW変更指示","lx":10,"ly":18,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="不審なログオン">何者かが、Vaultを通さずに <code>hk-fs01</code> のAdministratorで直接ログオンしました（盗んだパスワードやハッシュを使った可能性）。</li>
+<li data-label="ログの収集">サーバやドメインコントローラのログオン記録が、PTAへ送られます。</li>
+<li data-label="Vaultと突き合わせ">PTAは「そのアカウントがその時刻の前にVaultから取り出されたか」を確認します。<strong>取り出し記録がない＝正規の手順を通っていない</strong>ため、資格情報窃取の疑いと判定します。</li>
+<li data-label="アラート">PTAのダッシュボードに表示し、SIEMやメールでSOC（セキュリティ監視チーム）へ通知します。</li>
+<li data-label="自動対応">設定に応じて、PTAがCPMにパスワード変更を指示します。盗まれた資格情報はその時点で使えなくなります。</li>
+<li data-label="調査・封じ込め">SOCはログ・録画・PTAの情報をもとに、侵入経路や影響範囲を調査します（ケーススタディ応用編で演習）。</li>
+</ol>
+</figure>
+<div class="callout key"><span class="ttl">PTAの精度は「CyberArk経由の利用率」で決まる</span>
+<p>普段から管理者がVaultを通さずにログオンしている環境では、正規の作業まで「窃取の疑い」として大量に検知され、本物のアラートが埋もれます。<strong>「特権作業は必ずCyberArk経由」を徹底すること</strong>が、検知を有効にする前提です。</p>
+</div>
+<div class="callout verify"><span class="ttl">提供形態による違い</span><p>Self-HostedではPTAを専用サーバとして構築します。SaaS環境で同等の脅威分析を行う機能・ライセンスの構成は時期により変わっているため、Privilege Cloud環境では最新の公式ドキュメントで提供機能を確認してください。</p></div>
+
+<h2>4. 監査ログ・レポート</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>種類</th><th>中身</th><th>使う場面</th></tr></thead>
+<tbody>
+<tr><td>監査ログ（Activity）</td><td>ログイン、アカウントの取り出し・使用、承認、設定変更などの全操作</td><td>「誰がいつ何をしたか」の調査</td></tr>
+<tr><td>セッション録画・操作ログ</td><td>PSM経由のセッションの映像・コマンド・キーストローク</td><td>「その作業で具体的に何をしたか」の確認</td></tr>
+<tr><td>アカウント棚卸しレポート</td><td>管理下のアカウント一覧、最終変更日、CPMの状態</td><td>定期棚卸し、未変更・エラーアカウントの発見</td></tr>
+<tr><td>Safe・権限レポート</td><td>Safeごとのメンバーと権限</td><td>権限の定期レビュー（アクセス権の棚卸し）</td></tr>
+<tr><td>コンプライアンスレポート</td><td>ポリシー遵守状況（変更間隔超過など）</td><td>監査報告、経営報告</td></tr>
+</tbody></table></div>
+
+<h2>5. SIEM連携</h2>
+<p>VaultやPTAのイベントは、Syslogで社内のSIEMに送ることができます。SIEM側で他のログ（FW・EDR・AD）と相関分析することで、攻撃の全体像を追いやすくなります。Self-HostedのVaultでは、送信するイベントの形式を変換定義（XSL）で指定し、SIEMが読みやすい形式（CEFなど）で送る構成が一般的です。</p>
+<div class="callout tip"><span class="ttl">SIEMで最低限見ておきたいイベント（例）</span>
+<ul>
+<li>Masterユーザー・Administratorユーザーのログイン</li>
+<li>Safeメンバーの追加・権限変更（特に自分自身への付与）</li>
+<li>Master Policy・プラットフォームの変更</li>
+<li>短時間に大量のアカウント取り出し</li>
+<li>PTAの高リスクアラート</li>
+</ul>
+</div>
+
+<h2>6. 監査対応の勘所</h2>
+<ul>
+<li><strong>「申請→承認→利用→録画」が1本の線でつながること</strong>を示せるようにします（チケット番号を「理由」に入れる運用が効きます）。</li>
+<li><strong>定期レビュー</strong>：Safe権限（四半期）、管理対象外アカウントの有無、CPMエラーの放置がないかを定期的に確認します。</li>
+<li><strong>ログ・録画の保持期間</strong>は社内規程・法令（業界基準）に合わせ、容量計画とセットで決めます。</li>
+</ul>
+
+<section class="review" id="review">
+<h2>振り返り問題（第12章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. PTAが「資格情報窃取の疑い」と判断する典型的な条件は？</p>
+<ul class="rq-opts"><li>PSMの録画が長すぎる</li><li>CPMの変更間隔が短い</li><li>Vaultから取り出されていない管理対象アカウントでログオンがあった</li><li>Safe名が命名規則に違反している</li></ul>
+<div class="rq-exp">正規の取り出し記録がないのにログオンがあることが、窃取された資格情報の利用を示唆します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. PTAの検知精度を高めるための前提として最も重要なのは？</p>
+<ul class="rq-opts"><li>特権作業を必ずCyberArk経由で行う運用の徹底</li><li>録画の解像度を上げる</li><li>Safe数を減らす</li><li>Vaultをドメインに参加させる</li></ul>
+<div class="rq-exp">CyberArkを通さない正規作業が多いと誤検知が増え、本物のアラートが埋もれます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. 「その作業で具体的にどんなコマンドを打ったか」を確認するのに最適なのは？</p>
+<ul class="rq-opts"><li>アカウント棚卸しレポート</li><li>Safe権限レポート</li><li>Master Policyの設定画面</li><li>PSMのセッション録画・操作ログ</li></ul>
+<div class="rq-exp">PSMの操作ログでコマンドを検索し、録画の該当箇所を確認します。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q4. SIEMで特に監視すべきイベントとして<strong>適切でない</strong>ものは？</p>
+<ul class="rq-opts"><li>Masterユーザーのログイン</li><li>利用者がPVWAの表示言語を変更した</li><li>Safeメンバーの権限変更</li><li>短時間での大量のアカウント取り出し</li></ul>
+<div class="rq-exp">表示言語の変更はセキュリティ上の重要度が低いイベントです。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

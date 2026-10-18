@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="glossary.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CyberArk 用語集</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">はじめに｜用語集</div>
+  <h1>用語集</h1>
+  <p class="lead">CyberArkの現場では略語が飛び交います。分からない言葉はここで検索してください。各用語から詳しく学べる章へ移動できます。</p>
+  <ul class="goal-list"><li>主要な略語（PVWA・CPM・PSM・PTA・CCPなど）を見て、すぐに役割を言える</li></ul>
+</div>
+
+<div class="gl-tools">
+  <input type="search" id="gl-q" placeholder="用語・略語・説明文で検索（例：Reconcile、録画、承認）" aria-label="用語検索">
+  <div class="gl-filter" id="gl-filter" role="group" aria-label="分類で絞り込み"></div>
+</div>
+<p class="small muted" id="gl-count"></p>
+<dl class="gl" id="gl-list"></dl>
+
+</div></main>
+<script>
+var GLOSSARY = [
+ ["基礎","特権ID（特権アカウント）","Privileged Account","システムの設定変更・全データ参照など強い権限を持つアカウント。root、Administrator、ドメイン管理者、DBのSYS/SYSTEM、クラウドのルートユーザー、アプリのサービスアカウントなど。","ch01"],
+ ["基礎","PAM","Privileged Access Management","特権アクセス管理。特権IDの保管・利用・監視・パスワード変更を統制する仕組み・製品分野。","ch01"],
+ ["基礎","最小権限の原則","Least Privilege","業務に必要な最小限の権限だけを、必要な期間だけ与える考え方。","ch01"],
+ ["基礎","ZSP","Zero Standing Privileges","常設の特権をゼロにする考え方。必要なときだけ権限を作り、終わったら消す。","ch14"],
+ ["基礎","JIT","Just-In-Time access","必要なタイミングで一時的にアクセス権を付与する方式。","ch14"],
+ ["基礎","ラテラルムーブメント","Lateral Movement","侵入した攻撃者が、盗んだ資格情報を使って隣のサーバへ次々と移動すること。","ch01"],
+ ["基礎","Pass-the-Hash","Pass-the-Hash","パスワードのハッシュ値を盗み、平文を知らずに認証する攻撃手法。","ch12"],
+ ["製品","Identity Security Platform","Identity Security Platform","CyberArkのSaaS製品群の総称的な基盤。共通の管理基盤はISPSS（Identity Security Platform Shared Services）と呼ばれる。","ch02"],
+ ["製品","Idira","Idira","2026年5月にPalo Alto Networksが発表した、CyberArk技術を基盤とするアイデンティティセキュリティの新ブランド。","ch02"],
+ ["製品","PAM Self-Hosted","Privileged Access Manager Self-Hosted","自社環境に構築するPAM製品（旧称 PAS / Core PAS など）。","ch05"],
+ ["製品","Privilege Cloud","CyberArk Privilege Cloud","PAMのSaaS版。Vault等をCyberArkが運用し、顧客側にはコネクタを置く。","ch05"],
+ ["製品","SIA","Secure Infrastructure Access","サーバ・DB・Kubernetes等へのJIT/ZSP型アクセスを提供するSaaS（旧 Dynamic Privileged Access / DPA）。","ch14"],
+ ["製品","SCA","Secure Cloud Access","AWS/Azure/GCP等クラウド管理コンソールへのJITアクセスを提供するSaaS。","ch14"],
+ ["製品","EPM","Endpoint Privilege Manager","PC・サーバ上のローカル管理者権限を取り除き、必要なアプリだけ昇格させる製品。","ch14"],
+ ["製品","Remote Access","CyberArk Remote Access","外部委託先などがVPNなしで特権アクセスするためのSaaS（旧 Alero を含む系譜）。","ch14"],
+ ["製品","Secrets Manager","CyberArk Secrets Manager","アプリ・DevOps向けシークレット管理（旧 Conjur）。SaaS版とSelf-Hosted版がある。","ch13"],
+ ["製品","Secrets Hub","CyberArk Secrets Hub","AWS Secrets Manager等クラウドネイティブなシークレットストアとPAMを同期・一元管理するSaaS。","ch13"],
+ ["製品","Workforce Identity","CyberArk Workforce Identity","SSO・MFA・ライフサイクル管理などの従業員向けID管理（旧 CyberArk Identity）。","ch11"],
+ ["構成要素","Digital Vault（Vault）","Digital Vault / Enterprise Password Vault","特権資格情報やポリシー・監査ログを暗号化して保管する中枢サーバ。既定ポートはTCP 1858。","ch04"],
+ ["構成要素","PVWA","Password Vault Web Access","利用者・管理者が使うWeb画面（およびREST APIの窓口）。","ch03"],
+ ["構成要素","CPM","Central Policy Manager","ポリシーに従い、ターゲットのパスワードを自動で変更・検証・調整するコンポーネント。","ch08"],
+ ["構成要素","PSM","Privileged Session Manager","特権セッションを中継して分離・録画・監視するコンポーネント（Windowsサーバ上）。","ch10"],
+ ["構成要素","PSM for SSH（PSMP）","Privileged Session Manager for SSH","SSH接続を中継・記録するLinux上のコンポーネント。","ch10"],
+ ["構成要素","PTA","Privileged Threat Analytics","特権アクティビティを分析し、資格情報窃取などの脅威を検知・自動対応するコンポーネント。","ch12"],
+ ["構成要素","DR Vault","Disaster Recovery Vault","本番Vaultのデータを複製し、障害時に切り替える待機系Vault。","ch04"],
+ ["構成要素","PrivateArk Client","PrivateArk Client","Vaultに直接接続する管理用Windowsクライアント（主に高度な管理・緊急時に使用）。","ch04"],
+ ["構成要素","Connector（コネクタ）","Connector","Privilege Cloud等で顧客ネットワーク側に置くサーバ。CPM・PSM・Secure Tunnel等を載せる。","ch05"],
+ ["構成要素","Connector Management","Connector Management","SaaS側からコネクタの導入・管理を行う仕組み。オンプレ側にエージェントを導入する。","ch05"],
+ ["構成要素","Secure Tunnel","Secure Tunnel","Privilege Cloud等とオンプレを結ぶ暗号化トンネル（LDAP連携等に使用）。","ch05"],
+ ["構成要素","Identity Connector","Identity Connector","オンプレのActive Directory等とSaaS側のID基盤をつなぐコネクタ。","ch11"],
+ ["構成要素","HTML5 Gateway","PSM HTML5 Gateway","RDPクライアント不要で、ブラウザから直接PSMセッションを開くためのゲートウェイ。","ch10"],
+ ["設定","Safe","Safe","アカウントをまとめて格納し、アクセス権を付与する単位（＝貸金庫の箱）。","ch06"],
+ ["設定","Safe Member","Safe Member","Safeに権限を持つユーザー／グループ。権限は細かく選べる。","ch06"],
+ ["設定","Platform（プラットフォーム）","Platform","ターゲット種別ごとの管理ルールの型（変更間隔・パスワード規則・接続方法など）。","ch07"],
+ ["設定","Master Policy","Master Policy","組織全体の基本ルール（変更間隔、二重承認、排他、ワンタイム、記録など）。プラットフォームごとに例外設定が可能。","ch09"],
+ ["設定","Linked Account（連携アカウント）","Linked Account","ログオン用アカウントや調整用アカウントなど、あるアカウントの管理を助ける別アカウント。","ch07"],
+ ["設定","Logon Account","Logon Account","対象アカウントで直接ログインできない場合に、先にログインするためのアカウント（例：rootへの直接SSH禁止時）。","ch07"],
+ ["設定","Reconcile Account","Reconcile Account","パスワードが不一致になったときに、強制的にリセットするための高権限アカウント。","ch08"],
+ ["設定","Dependency（依存先）","Usage / Dependency","Windowsサービス・タスク・IIS等、そのパスワードを使っている場所。変更時に併せて更新する。","ch08"],
+ ["設定","Connection Component","Connection Component","PSMが接続時に起動する接続方式の定義（RDP、SSH、Webアプリ、SQLクライアント等）。","ch10"],
+ ["操作","Change（変更）","Change","CPMが新しいパスワードを生成し、ターゲットとVaultの両方を更新する操作。","ch08"],
+ ["操作","Verify（検証）","Verify","Vaultのパスワードでターゲットに実際にログインできるか確認する操作。","ch08"],
+ ["操作","Reconcile（調整）","Reconcile","不一致になったパスワードを、調整用アカウントで強制リセットして同期を回復する操作。","ch08"],
+ ["操作","Show / Copy","Show / Copy","パスワードを画面表示／クリップボードコピーする操作（Retrieve権限が必要）。","ch06"],
+ ["操作","Connect","Connect","PSM経由でパスワードを見せずにターゲットへ接続する操作（Use権限が必要）。","ch10"],
+ ["操作","Dual Control（二重承認）","Dual Control","アカウント利用前に承認者の承認を必要とする仕組み。","ch09"],
+ ["操作","Exclusive（排他）","Exclusive passwords","アカウントを一度に一人だけが使えるようにチェックアウトする仕組み。","ch09"],
+ ["操作","One-Time Password（ワンタイム）","One-time passwords","利用後（最低有効期間経過後）に必ずパスワードを変更する仕組み。","ch09"],
+ ["操作","Check-out / Check-in","Check-out / Check-in","排他アカウントの貸出し／返却。","ch09"],
+ ["連携","CP","Credential Provider","アプリケーションサーバに導入し、ローカルキャッシュを持ってパスワードを提供するエージェント型の仕組み。","ch13"],
+ ["連携","CCP","Central Credential Provider","エージェントを入れずにWebサービス（REST）経由でパスワードを取得する仕組み。","ch13"],
+ ["連携","Application ID（AppID）","Application ID","アプリをVaultに登録する際の識別子。許可するマシン・OSユーザー・パス・証明書等で認証する。","ch13"],
+ ["連携","REST API","REST API","PVWA経由で利用できるAPI。アカウント登録・Safe作成等の自動化に使う。","ch15"],
+ ["連携","SIEM","Security Information and Event Management","ログを集約・相関分析する基盤。Vault/PTAのイベントをSyslogで送る。","ch12"],
+ ["連携","LDAP連携（Directory Mapping）","LDAP Integration","Active Directory等のユーザー・グループをVaultのユーザーとして利用する設定。","ch11"],
+ ["連携","SAML","SAML","IdPでの認証結果を使ってPVWA等にシングルサインオンする標準規格。","ch11"],
+ ["連携","MFA","Multi-Factor Authentication","パスワード＋スマホ承認など複数の要素で本人確認する方式。","ch11"],
+ ["運用","Master CD / リカバリキー","Master CD / Recovery Key","Masterユーザーでのログインや鍵の復旧に使う秘密鍵。オフラインで厳重保管する。","ch04"],
+ ["運用","Server Key","Server Key","Vaultが保管データを暗号化する鍵階層の最上位に位置する鍵。","ch04"],
+ ["運用","Break Glass（緊急アクセス）","Break Glass","通常経路が使えない緊急時に、統制された手順で特権を使うこと。","ch15"],
+ ["運用","オンボーディング","Onboarding","特権アカウントを発見し、CyberArkの管理下（Safe登録・CPM管理）に入れる作業。","ch15"],
+ ["運用","Accounts Discovery","Accounts Discovery","ネットワーク上の特権アカウントを自動で発見し、登録候補として一覧化する機能。","ch15"],
+ ["運用","STS / LTS","Standard-Term / Long-Term Support","Self-Hostedのサポート期間区分。LTSは長期サポート版。","ch15"]
+];
+(function () {
+  var cats = ["すべて"].concat(GLOSSARY.map(function (g) { return g[0]; }).filter(function (v, i, a) { return a.indexOf(v) === i; }));
+  var active = "すべて";
+  var f = document.getElementById("gl-filter");
+  f.innerHTML = cats.map(function (c) { return '<button type="button" aria-pressed="' + (c === active) + '">' + c + "</button>"; }).join("");
+  var q = document.getElementById("gl-q"), list = document.getElementById("gl-list"), cnt = document.getElementById("gl-count");
+  function render() {
+    var s = q.value.trim().toLowerCase();
+    var rows = GLOSSARY.filter(function (g) {
+      return (active === "すべて" || g[0] === active) && (!s || (g[1] + g[2] + g[3]).toLowerCase().indexOf(s) >= 0);
+    });
+    cnt.textContent = rows.length + " 件";
+    list.innerHTML = rows.map(function (g) {
+      return '<div class="gl-item"><dt>' + g[1] + '<span class="en">' + g[2] + '</span> <span class="chip">' + g[0] + "</span></dt><dd>" + g[3] +
+        ' <a class="ch-link" href="learn/' + g[4] + '.html">→ 第' + Number(g[4].slice(2)) + "章で学ぶ</a></dd></div>";
+    }).join("") || '<p class="muted">該当する用語がありません。</p>';
+  }
+  f.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    active = b.textContent;
+    f.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+    render();
+  });
+  q.addEventListener("input", render);
+  render();
+})();
+</script>
+<script src="assets/app.js"></script>
+</body>
+</html>
