@@ -30,10 +30,10 @@ python3 tools/build_single.py   # → dist/cyberark-training.html
 
 ## claude.ai への引き継ぎ
 
-`dist/handoff/` に、claude.ai で教材を作り直すためのプロンプト（`prompt.md`）と、確定済みの教材の中身を4分冊にした教材パック（`content-vol1.md`〜`content-vol4.md`）があります。教材を編集したら、次のコマンドで教材パックを作り直してください。
+`dist/handoff/` に、claude.ai で教材を作り直すためのプロンプト（`prompt.md`）と、確定済みの教材の中身を章ごとに分けた教材パック（`content-<番号>_<タイトル>.md`、全21ファイル）があります。教材を編集したら、次のコマンドで教材パックを作り直してください。
 
 ```sh
-python3 tools/export_handoff.py   # → dist/handoff/content-vol1〜4.md
+python3 tools/export_handoff.py   # → dist/handoff/content-<番号>_<タイトル>.md
 ```
 
 ## 使い方

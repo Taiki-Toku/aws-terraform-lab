@@ -2,7 +2,7 @@
 """教材の中身（本文・図・問題・正解・解説・出典）を、claude.ai に渡すための
 Markdown「教材パック」に書き出す。
 
-使い方: python3 tools/export_handoff.py  → dist/handoff/content-vol1〜4.md
+使い方: python3 tools/export_handoff.py  → dist/handoff/content-<番号>_<タイトル>.md（章ごと）
 """
 import glob
 import html
@@ -161,11 +161,14 @@ def quiz_md():
     return "\n".join(lines)
 
 
-VOLUMES = [
-    ("vol1", "第1分冊 はじめに・基礎（ホーム／出典／用語集／第1〜4章）", ["index", "references", "glossary", "ch01", "ch02", "ch03", "ch04"], False),
-    ("vol2", "第2分冊 設計・設定（第5〜9章）", ["ch05", "ch06", "ch07", "ch08", "ch09"], False),
-    ("vol3", "第3分冊 利用・監視・実践（第10〜16章）", ["ch10", "ch11", "ch12", "ch13", "ch14", "ch15", "ch16"], False),
-    ("vol4", "第4分冊 ケーススタディ・総まとめ練習問題", ["cases"], True),
+# 章（ページ）ごとに1ファイルにする。ファイル名には番号とタイトルを付ける
+UNITS = [
+    ("00a", "ホーム（研修の全体像とゴール）", ["index"], False),
+    ("00b", "出典・公式ナレッジ", ["references"], False),
+    ("00c", "用語集", ["glossary"], False),
+] + [("ch%02d" % i, None, ["ch%02d" % i], False) for i in range(1, 17)] + [
+    ("90", "ケーススタディ", ["cases"], False),
+    ("91", "総まとめ練習問題", [], True),
 ]
 
 
@@ -173,28 +176,37 @@ def page_md(name):
     path = os.path.join(ROOT, "learn", name + ".html") if name.startswith("ch") else os.path.join(ROOT, name + ".html")
     src = read(path)
     body = re.search(r'<main class="main"><div class="content">(.*)</div></main>', src, re.S).group(1)
-    md = "\n\n---\n\n<!-- ページ：%s -->\n\n" % os.path.relpath(path, ROOT) + convert(body)
+    md = "\n\n<!-- 元ページ：%s -->\n\n" % os.path.relpath(path, ROOT) + convert(body)
     if name == "glossary":
         md += "\n\n" + glossary_md(src)
     return md
 
 
+def safe_title(t):
+    return re.sub(r'[\\/:*?"<>|\s]+', "", t)
+
+
 def main():
     chapters = re.findall(r'\{ id: "(ch\d\d)", t: "([^"]+)", g: "([^"]+)" \}', read(os.path.join(ROOT, "assets", "app.js")))
+    titles = {cid: "第%d章 %s" % (i + 1, t) for i, (cid, t, g) in enumerate(chapters)}
     toc = ["- 第%d章 %s ― ゴール：%s" % (i + 1, t, g) for i, (cid, t, g) in enumerate(chapters)]
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    for key, title, pages, with_quiz in VOLUMES:
-        out = ["# CyberArk 新人研修 教材パック：%s" % title, "",
-               "Claude Code で作成し、公式ドキュメント（docs.cyberark.com）と Palo Alto Networks 公式発表で検証済みの内容です。",
+    outdir = os.path.dirname(OUT)
+    os.makedirs(outdir, exist_ok=True)
+    for old in glob.glob(os.path.join(outdir, "content-*.md")):
+        os.remove(old)
+    for key, title, pages, with_quiz in UNITS:
+        title = title or titles[key]
+        out = ["# 教材パック：%s" % title, "",
+               "CyberArk 新人研修の確定済みの内容です。Claude Code で作成し、公式ドキュメント（docs.cyberark.com）と Palo Alto Networks 公式発表で検証済みです。",
                "**事実（数値・日付・製品名・仕様・正解）は変更しないでください。** 表現・レイアウト・見せ方の改善は自由です。",
                "企業（ヒカリ精機株式会社）・人物・ホスト名・IPアドレスはすべて架空です。", "",
                "## 全体の章立て（参考）", ""] + toc
         for name in pages:
             out.append(page_md(name))
         if with_quiz:
-            out.append("\n\n---\n\n# 総まとめ練習問題（問題バンク・正解と解説つき）\n")
+            out.append("\n\n# 総まとめ練習問題（問題バンク・正解と解説つき）\n")
             out.append(quiz_md())
-        path = os.path.join(os.path.dirname(OUT), "content-%s.md" % key)
+        path = os.path.join(outdir, "content-%s_%s.md" % (key, safe_title(title)))
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(out) + "\n")
         print("wrote", os.path.relpath(path, ROOT), os.path.getsize(path), "bytes")
