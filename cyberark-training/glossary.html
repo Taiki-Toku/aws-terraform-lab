@@ -37,10 +37,10 @@ var GLOSSARY = [
  ["製品","Idira","Idira","2026年5月にPalo Alto Networksが発表した、CyberArk技術を基盤とするアイデンティティセキュリティの新ブランド。","ch02"],
  ["製品","PAM Self-Hosted","Privileged Access Manager Self-Hosted","自社環境に構築するPAM製品（旧称 PAS / Core PAS など）。","ch05"],
  ["製品","Privilege Cloud","CyberArk Privilege Cloud","PAMのSaaS版。Vault等をCyberArkが運用し、顧客側にはコネクタを置く。","ch05"],
- ["製品","SIA","Secure Infrastructure Access","サーバ・DB・Kubernetes等へのJIT/ZSP型アクセスを提供するSaaS（旧 Dynamic Privileged Access / DPA）。","ch14"],
+ ["製品","SIA","Secure Infrastructure Access","サーバ・DB・Kubernetes等へのJIT/ZSP型アクセスを提供するSaaS（2024年10月に Dynamic Privileged Access / DPA から改称）。","ch14"],
  ["製品","SCA","Secure Cloud Access","AWS/Azure/GCP等クラウド管理コンソールへのJITアクセスを提供するSaaS。","ch14"],
  ["製品","EPM","Endpoint Privilege Manager","PC・サーバ上のローカル管理者権限を取り除き、必要なアプリだけ昇格させる製品。","ch14"],
- ["製品","Remote Access","CyberArk Remote Access","外部委託先などがVPNなしで特権アクセスするためのSaaS（旧 Alero を含む系譜）。","ch14"],
+ ["製品","Remote Access","CyberArk Remote Access","外部委託先などがVPNなしで特権アクセスするためのSaaS（2021年に Alero から改称。モバイルアプリはIdira Mobile）。","ch14"],
  ["製品","Secrets Manager","CyberArk Secrets Manager","アプリ・DevOps向けシークレット管理（旧 Conjur）。SaaS版とSelf-Hosted版がある。","ch13"],
  ["製品","Secrets Hub","CyberArk Secrets Hub","AWS Secrets Manager等クラウドネイティブなシークレットストアとPAMを同期・一元管理するSaaS。","ch13"],
  ["製品","Workforce Identity","CyberArk Workforce Identity","SSO・MFA・ライフサイクル管理などの従業員向けID管理（旧 CyberArk Identity）。","ch11"],
@@ -88,7 +88,7 @@ var GLOSSARY = [
  ["運用","Break Glass（緊急アクセス）","Break Glass","通常経路が使えない緊急時に、統制された手順で特権を使うこと。","ch15"],
  ["運用","オンボーディング","Onboarding","特権アカウントを発見し、CyberArkの管理下（Safe登録・CPM管理）に入れる作業。","ch15"],
  ["運用","Accounts Discovery","Accounts Discovery","ネットワーク上の特権アカウントを自動で発見し、登録候補として一覧化する機能。","ch15"],
- ["運用","STS / LTS","Standard-Term / Long-Term Support","Self-Hostedのサポート期間区分。LTSは長期サポート版。","ch15"]
+ ["運用","STS / LTS","Standard-Term / Long-Term Support","Self-Hostedのサポート期間区分。LTSは長期サポート版（例：15.2）、LTSと明記されない版はSTS（例：15.0）。","ch15"]
 ];
 (function () {
   var cats = ["すべて"].concat(GLOSSARY.map(function (g) { return g[0]; }).filter(function (v, i, a) { return a.indexOf(v) === i; }));

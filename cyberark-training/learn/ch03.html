@@ -90,7 +90,7 @@
 <tr><td>Vault → DR Vault（DRサービス）</td><td>TCP 1858</td><td>データ複製</td></tr>
 </tbody></table></div>
 <div class="callout key"><span class="ttl">「1858」は絶対に覚える</span>
-<p>Vault関連の疎通トラブルの多くはFWでのTCP 1858遮断です。「PVWAでログインできない」「CPMがVaultに繋がらない」ときは、まず<code>Test-NetConnection 10.10.10.11 -Port 1858</code>（PowerShell）のように疎通を確認します。</p>
+<p>公式の「Network port definitions」でも、CPM・PVWA・PSM・PSM for SSH などからVaultへの通信は <strong>TCP 1858（既定。443などへの変更も可能）</strong> とされています。Vault関連の疎通トラブルの多くはFWでのTCP 1858遮断です。「PVWAでログインできない」「CPMがVaultに繋がらない」ときは、まず<code>Test-NetConnection 10.10.10.11 -Port 1858</code>（PowerShell）のように疎通を確認します。</p>
 </div>
 
 <h2>4. 1回の特権利用で部品がどう連携するか</h2>

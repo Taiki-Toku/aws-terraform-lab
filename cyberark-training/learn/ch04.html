@@ -18,7 +18,7 @@
   <h4>この章のゴール</h4>
   <ul class="goal-list">
     <li>Vaultを「ドメインに参加させない」「他のソフトを入れない」理由を説明できる</li>
-    <li>Masterユーザー・Administratorユーザー・Auditors等の組み込みグループの違いを説明できる</li>
+    <li>Masterユーザー・Administratorユーザー・Auditors等の組み込みユーザー／グループの違いを説明できる</li>
     <li>DR Vaultへの切り替えの流れと、コンポーネント側の動きを説明できる</li>
   </ul>
   <div class="ch-meta"><span class="chip acc">目安 70分</span><span class="chip">前提：第3章</span></div>
@@ -79,18 +79,18 @@
 <div class="table-wrap"><table>
 <thead><tr><th>名前</th><th>種類</th><th>特徴</th><th>運用上の扱い</th></tr></thead>
 <tbody>
-<tr><td><strong>Master</strong></td><td>ユーザー</td><td>すべてのSafeに対して全権限を持ち、その権限は削除できない。ログインにはリカバリキーが必要</td><td><strong>緊急時専用（ブレークグラス）</strong>。普段は絶対に使わない</td></tr>
+<tr><td><strong>Master</strong></td><td>ユーザー</td><td>「Authorize password requests（承認）」を除くすべてのSafe権限を持ち、どのSafeからも削除できない。System Safeを編集できる唯一のユーザー。ログインはPrivate Recovery Keyを含む<strong>Master CD</strong>でのみ可能</td><td><strong>緊急時専用（ブレークグラス）</strong>。普段は絶対に使わない</td></tr>
 <tr><td><strong>Administrator</strong></td><td>ユーザー</td><td>初期の管理者ユーザー。Masterと違い、新しいSafeへ自動で全権限が付くわけではない</td><td>初期構築後は厳重保管し、日常は個人名の管理者アカウントを使う</td></tr>
 <tr><td><strong>Vault Admins</strong></td><td>グループ</td><td>Vaultの管理機能（PVWAの管理画面等）を使える管理者グループ</td><td>メンバーは最小限に。LDAPグループをマッピングすることが多い</td></tr>
-<tr><td><strong>Auditors</strong></td><td>グループ</td><td>監査ログの参照を目的とするグループ</td><td>監査担当・内部監査部門</td></tr>
-<tr><td>Backup Users / DR Users / Operators など</td><td>グループ・ユーザー</td><td>バックアップ・DR複製・運用操作用</td><td>用途専用。対話ログインには使わない</td></tr>
+<tr><td><strong>Auditors</strong></td><td>グループ</td><td>View audit と View Safe Members 権限を持ち、Safeの内容・操作ログ・オーナー一覧を参照できる（組み込みのAuditorユーザーが所属）</td><td>監査担当・内部監査部門</td></tr>
+<tr><td>Backup Users / DR Users / Operators など</td><td>グループ・ユーザー</td><td>Backup Users・DR UsersはBackup Safe権限（バックアップ・DR複製用）、OperatorsはManage Safe権限（Safeのプロパティ変更等。中身は見えない）</td><td>用途専用。対話ログインには使わない</td></tr>
 </tbody></table></div>
 <div class="point-box">
   <div class="big">🚨</div>
   <div><p class="one">Masterユーザーは「非常口の鍵」。使ったら必ず事後報告・記録・原因対策。</p>
   <p class="small muted">Masterの利用は、全管理者がロックアウトされた等の非常事態に限ります。利用手順（誰が立ち会い、どこから鍵を出し、どう記録するか）を事前に文書化しておくのが設計者の仕事です。</p></div>
 </div>
-<div class="callout verify"><span class="ttl">確認ポイント</span><p>組み込みユーザー・グループの一覧と既定権限はバージョンにより差があります。設計時は該当バージョンの「Predefined users and groups」を確認してください。</p></div>
+<div class="callout verify"><span class="ttl">公式ドキュメントで確認済み（2026-10-19）</span><p>出典：PAM - Self-Hosted「Predefined users and groups」。なお、<strong>Master以外の組み込みユーザーは作成時点では無効（disabled）</strong>で、使うには有効化が必要です。組み込みユーザー・グループを自動追加されたSafeから外せるかどうかは、DBParm.ini の設定で決まります。</p></div>
 
 <h2>4. 可用性：DR・バックアップ・冗長化</h2>
 <p>Vaultが止まるとPAM全体が止まり、特権作業ができなくなります。そのため可用性設計は必須です。</p>
@@ -142,7 +142,7 @@
 <ul class="rq-opts"><li>ライセンスがドメイン参加を禁止しているから</li><li>ドメインが侵害されても、ドメイン管理者権限でVaultサーバへ侵入されないようにするため</li><li>ドメイン参加するとTCP 1858が使えなくなるから</li><li>ドメイン参加するとバックアップが取れないから</li></ul>
 <div class="rq-exp">ドメイン侵害がVault侵害に直結しないよう、Vaultは独立させます。</div></div>
 <div class="rq" data-correct="3"><p class="rq-q">Q2. Masterユーザーの説明として正しいものは？</p>
-<ul class="rq-opts"><li>日常の管理作業で使う標準的な管理者</li><li>監査ログを閲覧するためだけのユーザー</li><li>PVWAのREST API専用ユーザー</li><li>全Safeに削除できない全権限を持ち、リカバリキーを使ってログインする緊急用ユーザー</li></ul>
+<ul class="rq-opts"><li>日常の管理作業で使う標準的な管理者</li><li>監査ログを閲覧するためだけのユーザー</li><li>PVWAのREST API専用ユーザー</li><li>どのSafeからも削除できず（承認権限を除く）全権限を持ち、Master CDのリカバリキーでのみログインできる緊急用ユーザー</li></ul>
 <div class="rq-exp">Masterは緊急時専用です。日常使用は厳禁です。</div></div>
 <div class="rq" data-correct="0"><p class="rq-q">Q3. 「誤って削除したアカウント情報を前日の状態に戻したい」場合に必要なのは？</p>
 <ul class="rq-opts"><li>バックアップ</li><li>DR Vault</li><li>PSMの冗長化</li><li>ロードバランサ</li></ul>

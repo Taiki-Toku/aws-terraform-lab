@@ -50,7 +50,7 @@
 <tr><td>段階2</td><td><strong>横展開・権限昇格を止める</strong></td><td>サーバのローカル管理者、DB・ネットワーク機器の管理者、ワークステーションの権限（EPM）へ拡大</td></tr>
 <tr><td>段階3</td><td><strong>特権の悪用を最小化する</strong></td><td>アプリのシークレット、クラウド、ZSP/JITの適用、脅威検知と自動対応の高度化</td></tr>
 </tbody></table></div>
-<div class="callout verify"><span class="ttl">参考</span><p>Blueprintが「リスクに基づき段階的に統制を導入する計画」であることは公式ページで確認していますが、各段階の正式名称・内容は本教材作成時に全文を確認できていません。上表は考え方を新人向けに要約したものです。最新版は公式サイト（cyberark.com/blueprint）で確認してください。</p></div>
+<div class="callout verify"><span class="ttl">参考</span><p>公式ドキュメントのBlueprint（docs.cyberark.com の「CyberArk Blueprint」）では、侵入後の攻撃に対する3つの原則として「アイデンティティ侵害（資格情報窃取）の防止」「横方向・縦方向の移動の阻止」「権限昇格と悪用の制限」を挙げており、上表はこれを新人向けに要約したものです（2026-10-19確認）。各原則に対応する具体的な統制（Vault格納・ローテーション・分離、JIT・一意のローカル資格情報、最小権限・ZSP・脅威検知など）は同ドキュメントを参照してください。</p></div>
 <div class="callout tip"><span class="ttl">最初の成果（クイックウィン）を早く出す</span>
 <p>導入プロジェクトは長期化しがちです。「ドメイン管理者を全部Vaultに入れ、パスワードを自動変更した」のような<strong>経営層にも伝わる最初の成果</strong>を早めに作ると、その後の展開がスムーズになります。</p>
 </div>
@@ -129,8 +129,14 @@ POST https://pam.hikari.example/PasswordVault/API/Accounts
 
 <h2>7. バージョンアップとサポート</h2>
 <ul>
-<li><strong>Self-Hosted</strong>：サポート期間の区分（長期サポートのLTS、標準のSTS）があります。2025年12月にリリースされたv15はSTSと案内されています。自社のバージョンのサポート終了日を把握し、計画的にアップグレードします。</li>
-<li><strong>アップグレード順序</strong>：一般にVaultから先に上げ、その後にPVWA・CPM・PSM等のコンポーネントを上げますが、<mark>バージョンの組み合わせによって順序・互換性が異なる</mark>ため、必ず公式のアップグレードガイドと互換性表を確認します。</li>
+<li><strong>Self-Hosted</strong>：サポート期間の区分（長期サポートのLTS、標準のSTS。LTSと明記されていない版はSTS）があります。公式のEnd of Life Policy（2026-10-19確認）では次のとおりです。
+<div class="table-wrap"><table><thead><tr><th>バージョン</th><th>リリース</th><th>開発終了（修正提供の終了）</th><th>サポート終了</th></tr></thead><tbody>
+<tr><td><strong>15.2（LTS）</strong></td><td>2026年7月</td><td>2029年7月</td><td>2029年7月（有償延長で2031年7月）</td></tr>
+<tr><td>15.0（STS）</td><td>2025年12月</td><td>2026年12月</td><td>2027年12月</td></tr>
+<tr><td>14.6（LTS）</td><td>2025年6月</td><td>2028年6月</td><td>2028年6月（有償延長で2030年6月）</td></tr>
+</tbody></table></div>
+<strong>アップグレードはLTSから次のLTS、または最新版へのみサポート</strong>され、LTSの修正を受けるには全コンポーネントを同じLTSにそろえる必要があります。15.2ではIdiraブランドへの名称変更も始まっています。</li>
+<li><strong>アップグレード順序</strong>：公式の互換性ページでは <strong>Vault → PVWA → CPM</strong> の順に上げ、その後に他のコンポーネント（PSM等）を上げるとされています（例：CPM 15.2 は Vault・PVWA が15.2以上であることが前提）。Primary-DR構成では<strong>Primary Vault → DR Vault → コンポーネント</strong>の順です。<mark>組み合わせによって条件が異なる</mark>ため、作業前に必ず該当バージョンのアップグレードガイドと互換性表を確認します。</li>
 <li><strong>Privilege Cloud</strong>：SaaS側は自動で更新されます。コネクタ側のコンポーネント（CPM・PSM等）は、更新の仕組みと対応バージョンを確認して計画的に更新します。</li>
 </ul>
 

@@ -44,7 +44,7 @@
 </div>
 
 <h2>2. Secure Infrastructure Access（SIA）</h2>
-<p>SIA（旧 Dynamic Privileged Access）は、Windows／Linuxサーバ、データベース、Kubernetesなどへの特権アクセスを、<strong>JIT・ZSPの考え方で提供するSaaS</strong>です。</p>
+<p>SIA（2024年10月に Dynamic Privileged Access から改称。改称時に、ZSPに加えてVaultに格納した資格情報での接続にも対応）は、Windows／Linuxサーバ、データベース、Kubernetesなどへの特権アクセスを、<strong>JIT・ZSPの考え方で提供するSaaS</strong>です。</p>
 <ul>
 <li><strong>VPN・踏み台が不要</strong>：顧客ネットワーク内のコネクタが外向きに接続する方式で、インバウンドの穴を開けずに利用できる</li>
 <li><strong>一時的な資格情報</strong>：セッションごとに短命な資格情報（一時的なユーザー・証明書など）を用意し、終了後に無効化</li>
@@ -81,7 +81,7 @@
 <li data-label="終了と削除">セッション終了後、一時的な資格情報は無効化・削除されます。<strong>次に必要になるまで、誰も特権を持っていない状態</strong>に戻ります。</li>
 </ol>
 </figure>
-<div class="callout verify"><span class="ttl">仕組みの詳細</span><p>一時的な資格情報の方式（一時ユーザー・短命証明書・ドメインアカウントの利用等）は、接続先の種類と設定により異なります。設計時は公式ドキュメントで対象プラットフォームごとの方式を確認してください。</p></div>
+<div class="callout verify"><span class="ttl">一時的な資格情報の方式（公式ドキュメント 2026-10-19 確認）</span><p>Linuxでは<strong>短命のSSH証明書</strong>（接続ごとに新しく発行され、数分で無効化）、Windows（RDP）では<strong>一時的なローカルユーザーまたはドメインユーザー</strong>、データベースではエンジンに応じて一時的なローカル／ドメインユーザーやRDSのIAM資格情報が使われます。セッション終了時や、無操作・時間帯・セッション時間などのポリシー制限に達した時点でアクセスが取り除かれます。詳細は設計時に対象ごとの公式手順で確認してください。</p></div>
 
 <h2>3. Secure Cloud Access（SCA）</h2>
 <p>SCAは、AWS・Azure・GCPなどの<strong>クラウド管理コンソールやCLIへの特権</strong>を、必要な時間だけ付与するSaaSです。</p>
@@ -103,13 +103,13 @@
 <tr><td>資格情報窃取対策</td><td>OSやブラウザ等に保存された資格情報を狙う窃取の試みを検知・ブロック</td></tr>
 <tr><td>ランサムウェア対策</td><td>不審なファイル暗号化等の振る舞いからの保護</td></tr>
 </tbody></table></div>
-<p class="small muted">EPMは現在SaaSで提供され、Windows・macOS・Linuxに対応しています（対応OSは公式ドキュメントで確認）。オンプレミス版はサポート終了済みとされています（出典ページ参照・要確認）。</p>
+<p class="small muted">EPMは現在SaaSで提供され、Windows・macOS・Linuxに対応しています（対応OSは公式ドキュメントで確認）。公式のEnd of Life Policyによると、オンプレミス版は2021年1月6日に段階的終了が告知され、<strong>2023年12月31日でサポートが終了</strong>しています（2026-10-19確認）。</p>
 
 <h2>5. Remote Access（委託先アクセス）</h2>
 <ul>
 <li>保守委託先（例：ネクスト保守サービスの小林さん）が、<strong>VPNなし</strong>で必要なシステムにだけアクセスできる</li>
 <li>委託先の担当者ごとにADアカウントやVPNアカウントを作らずに済む（JITでの登録）</li>
-<li>モバイルアプリの生体認証などで本人確認</li>
+<li>モバイルアプリ（旧Aleroアプリ。現在はIdira Mobileアプリ）でワンタイムのQRコードを読み取り、顔・指紋認証で本人確認（生体情報はスマートフォン内に留まる）。Remote Accessは2021年にAleroから改称</li>
 <li>アクセスはPSM等を経由するため、パスワードは渡さず、操作は録画される</li>
 </ul>
 

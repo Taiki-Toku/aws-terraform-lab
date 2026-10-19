@@ -86,7 +86,7 @@ db.password=Hikari2019!   ← 平文のまま、7年間変更なし</code></pre>
 <ol class="flow-desc">
 <li data-label="取得要求">アプリは起動時（または接続時）に、CCPへHTTPSで「Application ID＝HK-SalesApp、Safe＝HK-PRD-APP-ORA-APPUSR、対象＝appuser」のパスワードを要求します。クライアント証明書を提示します。
 <pre style="margin:8px 0 0"><code>GET https://ccp.hikari.example/AIMWebService/api/Accounts?AppID=HK-SalesApp&amp;Safe=HK-PRD-APP-ORA-APPUSR&amp;Object=...</code></pre>
-<span class="small muted">※URLやパラメータの詳細は公式ドキュメントの該当バージョンを確認してください。</span></li>
+<span class="small muted">※公式ドキュメント（Credential Providers「Call the Web Service using REST」）で確認済み。AppIDは必須で、ほかに少なくとも1つの条件が必要です。値はレスポンスの <code>Content</code> に入ります。<strong>同じエンドポイントをPOSTで呼ぶ方法の方がより安全</strong>とされており（URLに条件が残らない、監査用の理由を渡せる等）、新規実装ではPOSTを検討します。</span></li>
 <li data-label="アプリ認証">CCPは、要求元が登録された条件（送信元IPが許可マシンか、証明書が正しいか）を満たすか確認します。<strong>パスワードではなく「アプリの属性」で本人確認</strong>します。</li>
 <li data-label="Vaultから取得">認証に成功したら、CCPのProviderがVaultのアプリ用Safeから資格情報を取り出します。</li>
 <li data-label="結果を受け取る">Vaultでも権限（Application IDとProviderのSafe権限）が確認され、資格情報が返されます。すべての取得は監査ログに残ります。</li>
@@ -108,7 +108,8 @@ db.password=Hikari2019!   ← 平文のまま、7年間変更なし</code></pre>
 <p>AWS Secrets ManagerやAzure Key Vaultは「各クラウドに備え付けの金庫（支店の金庫）」です。開発者は使い慣れたその金庫を使いたい。一方セキュリティ部門は、ローテーションや監査を本社（CyberArk）で一元管理したい。Secrets Hubは、<strong>本社金庫の中身を支店金庫に自動で配送・同期する仕組み</strong>です。</p>
 </div>
 <ul>
-<li>CyberArk（Privilege Cloud／Self-Hosted）で管理・ローテーションしたシークレットを、クラウドのシークレットストアへ同期</li>
+<li>CyberArk（Privilege Cloud／Self-Hosted）で管理・ローテーションしたシークレットを、<strong>AWS Secrets Manager・Azure Key Vault・GCP Secret Manager・HashiCorp Vault</strong>へ同期（公式「Secrets Hub support and scope」2026-10-19確認。鍵・証明書は対象外）</li>
+<li>各クラウドとの信頼関係は、AWSはIAMロール、AzureはApp Registration（新規はフェデレーションIDのみ）、GCPはサービスアカウント／Workload Identity Federationで構成</li>
 <li>アプリは<strong>クラウドの標準API</strong>のまま使えるため、アプリ改修が少ない</li>
 <li>クラウドのシークレットストアにある既存シークレットを発見・可視化し、CyberArkの管理下へ取り込む機能も拡充されている（2025年のアップデート）</li>
 </ul>

@@ -57,7 +57,7 @@
     HK-PRD-APP-ORA-APPUSR … 本番 アプリ用 Oracle 接続ユーザー（第13章）
     HK-PRD-VND-NEXT-WIN   … 本番 委託先（ネクスト保守）用 Windows</code></pre>
 <div class="callout danger"><span class="ttl">Safe名には制約がある</span>
-<p>Safe名には文字数の上限（一般に28文字とされる）や使用できない文字があります。また<strong>Safe名は後から変えにくい</strong>（連携設定・スクリプト・レポートが名前に依存する）ため、命名規則は導入初期に決めて文書化しましょう。上限値は該当バージョンの公式ドキュメントで確認してください。</p>
+<p>公式ドキュメントでは、Safe名は<strong>最大28文字</strong>で、<code>\ / : * &lt; &gt; . | ? " % &amp; +</code> などの文字は使えません（Privilege Cloudでは <code>;</code> も不可）。Secrets Hubでクラウドへ同期する場合は、Azure Key Vault（英数字とハイフンのみ）など同期先の命名制約も受けます。また<strong>Safe名は後から変えにくい</strong>（連携設定・スクリプト・レポートが名前に依存する）ため、命名規則は導入初期に決めて文書化しましょう。</p>
 </div>
 
 <div class="callout tip"><span class="ttl">ちょうどよい粒度</span>

@@ -44,7 +44,22 @@
 <tr><td>セッションの記録・保存</td><td>録画・操作ログを保存</td><td>PSM経由の全セッション</td></tr>
 <tr><td>監査</td><td>監査ログの保持期間</td><td>Vault上での監査データの保持日数</td><td>規程に合わせる</td></tr>
 </tbody></table></div>
-<div class="callout verify"><span class="ttl">既定値について</span><p>各ルールの既定値（有効／無効、日数）はバージョン・提供形態で異なる場合があります。設計書には「既定値」ではなく「自社で決めた値」を明記しましょう。</p></div>
+<h3>公式ドキュメント上の既定値（2026-10-19 確認）</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ルール（英語表記）</th><th>既定値</th></tr></thead>
+<tbody>
+<tr><td>Require dual control password access approval（二重承認）</td><td>無効</td></tr>
+<tr><td>Enforce check-in/check-out exclusive access（排他）</td><td>無効</td></tr>
+<tr><td>Enforce one-time password access（ワンタイム）</td><td>無効</td></tr>
+<tr><td>Allow EPV transparent connections（Click to connect：PSM経由で見せずに接続）</td><td>有効</td></tr>
+<tr><td>Require users to specify reason for access（理由入力）</td><td>有効</td></tr>
+<tr><td>Require password change every X days（定期変更）</td><td>90日</td></tr>
+<tr><td>Require password verification every X days（定期検証）</td><td>7日</td></tr>
+<tr><td>Require privileged session monitoring and isolation（PSM経由の強制）※Self-Hosted</td><td>無効</td></tr>
+<tr><td>Record and save session activity（セッション記録）</td><td>有効</td></tr>
+<tr><td>Audit（Safe操作の監査保持日数）</td><td>90日</td></tr>
+</tbody></table></div>
+<p class="small muted">出典：PAM - Self-Hosted「Understand the master policy framework」、Privilege Cloud「View and set Master policy rules and settings」。定期変更の日数は「変更周期を決める設定」であり、それ自体が変更を強制するものではない点に注意（自動変更はプラットフォームの自動管理設定とCPMで行う）。設計書には既定値ではなく「自社で決めた値」を明記しましょう。</p>
 
 <h3>排他とワンタイムの「最低有効期間」</h3>
 <p>排他やワンタイムでは、<strong>最低有効期間（MinValidityPeriod）</strong>という考え方があります。パスワードを取り出した後、この期間はパスワードが変更されず作業できます。期間経過後（または利用者が返却＝チェックインした後）に、CPMがパスワードを変更し、排他ロックも解除されます。</p>

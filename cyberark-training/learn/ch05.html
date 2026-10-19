@@ -61,7 +61,7 @@
 {"id":"t","x":230,"y":290,"w":150,"h":60,"label":"ターゲット","sub":"サーバ/DB","kind":"target"}],
 "edges":[
 {"from":"u","to":"id","label":"HTTPS（ログイン）"},
-{"from":"con","to":"v","label":"アウトバウンドHTTPS（暗号化）"},
+{"from":"con","to":"v","label":"アウトバウンド TCP 443 / 1858（TLS 1.2以上）"},
 {"from":"con","to":"cm","dashed":true,"label":"管理用","ly":18},
 {"from":"con","to":"t","label":"変更・中継"},
 {"from":"con","to":"ad","dashed":true,"label":"LDAP等"}]}
@@ -81,8 +81,8 @@
 
 <div class="point-box">
   <div class="big">↗</div>
-  <div><p class="one">コネクタは「内側から外へ」話しかける。外（SaaS）から社内へ穴を開ける必要は基本的にない。</p>
-  <p class="small muted">コネクタからSaaSへのアウトバウンドHTTPS通信が基本です。必要な宛先・ポートはバージョン・リージョンで異なるため、公式の「ネットワーク要件」で必ず確認します。</p></div>
+  <div><p class="one">コネクタは「内側から外へ」話しかける。外（SaaS）から社内へ穴を開ける必要はない。</p>
+  <p class="small muted">公式の「Outbound traffic network and port requirements」では、コネクタからSaaSへのアウトバウンド通信として <strong>TCP 443（HTTPS：REST/API・証明書検証等）と TCP 1858（Vaultバックエンド）</strong> が挙げられ、通信はすべて TLS 1.2 以上です。宛先の指定はワイルドカードによる動的設定が推奨され、使えない場合はテナント固有のFQDN／IPを許可します。</p></div>
 </div>
 
 <h2>3. コネクタ導入の流れ</h2>
@@ -110,13 +110,16 @@
 <li data-label="コンポーネント稼働">CPM・PSMがPrivilege Cloudと通信を開始し、ターゲットのパスワード管理やセッション中継が可能になります。冗長化のため2台目（<code>hk-conn02</code>）も同様に導入します。</li>
 </ol>
 </figure>
+<div class="callout danger"><span class="ttl">「HTTPSだけ開ければよい」は誤り</span>
+<p>Privilege Cloudのコネクタは 443 に加えて <strong>TCP 1858</strong> の外向き通信が必要です。プロキシ経由でHTTPSだけを許可している環境では、1858 の扱いを事前にネットワーク担当と決めておかないと、コネクタがVaultに接続できません。また、IdiraはSaaS側で<strong>特定IPからのインバウンドのみ許可</strong>するため、コネクタの<strong>送信元となる公開IPアドレスをテクニカルサポートに届け出る</strong>必要があります（送信元IPは常に同じになるよう経路を固定）。IPv4のみ対応です。</p>
+</div>
 <div class="callout verify"><span class="ttl">確認ポイント</span><p>導入手順・前提条件（OS、.NET、通信要件、トークン有効期限）は更新が頻繁です。必ず最新の「Connector Management」ドキュメントで確認してから作業してください。</p></div>
 
 <h2>4. 比較と選び方</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>観点</th><th>Self-Hosted が向くケース</th><th>Privilege Cloud が向くケース</th></tr></thead>
 <tbody>
-<tr><td>ネットワーク</td><td>インターネット接続が許されない閉域環境</td><td>アウトバウンドHTTPSが許容できる</td></tr>
+<tr><td>ネットワーク</td><td>インターネット接続が許されない閉域環境</td><td>コネクタからの外向き通信（TCP 443・1858）を許可できる</td></tr>
 <tr><td>規制・データ所在</td><td>資格情報を自社管理下に置くことが規程上必須</td><td>SaaSの認証・リージョンが要件を満たす</td></tr>
 <tr><td>運用体制</td><td>Vault・DR・バージョンアップを担える体制がある</td><td>インフラ運用を減らし、設計・活用に注力したい</td></tr>
 <tr><td>拡張性</td><td>既存の高度なカスタマイズ資産がある</td><td>SIA・SCA・Secrets Hub等のSaaS製品と統合したい</td></tr>
@@ -133,7 +136,7 @@
 <div class="rq-exp">Vaultや管理画面はCyberArkが運用し、顧客はコネクタ（CPM・PSM等）を運用します。</div></div>
 <div class="rq" data-correct="0"><p class="rq-q">Q2. コネクタとSaaS間の通信の基本的な考え方は？</p>
 <ul class="rq-opts"><li>コネクタからSaaSへのアウトバウンド通信</li><li>SaaSから社内へのインバウンド通信をFWで開放</li><li>専用線が必須</li><li>コネクタとSaaSは通信しない</li></ul>
-<div class="rq-exp">コネクタから外向き（アウトバウンド）に接続するのが基本です。詳細な宛先とポートは公式要件で確認します。</div></div>
+<div class="rq-exp">コネクタから外向き（アウトバウンド）に接続します。公式要件では TCP 443 と TCP 1858 が必要で、TLS 1.2以上です。宛先FQDN等は公式要件で確認します。</div></div>
 <div class="rq" data-correct="3"><p class="rq-q">Q3. Privilege Cloudを採用しても、顧客側に残る仕事は？</p>
 <ul class="rq-opts"><li>Vaultのハードニング</li><li>Vaultのバックアップ</li><li>SaaS管理画面のバージョンアップ</li><li>Safe設計・権限設計・承認運用</li></ul>
 <div class="rq-exp">Safe設計や権限・承認の運用は、提供形態に関係なく顧客の仕事です。</div></div>

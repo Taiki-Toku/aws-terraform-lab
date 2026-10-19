@@ -66,7 +66,7 @@
 </ol>
 </figure>
 <div class="callout tip"><span class="ttl">PSMAdminConnectとは</span>
-<p>PSMサーバには、受付用のPSMConnectのほかに、監査担当が<strong>ライブセッションを監視する</strong>ときに使われるPSMAdminConnectというアカウントもあります。どちらもPSMの内部用アカウントで、パスワードはCyberArkで管理します。期限切れ・ロックはPSMの接続障害の典型原因です。</p>
+<p>公式ドキュメントでは、<strong>PSMConnectはPSMマシン上でセッションを開始し、PSMAdminConnectはライブセッションの監視・制御に使う</strong>Windowsユーザーで、PSMインストール時に作成されます。ドメインユーザーに移す場合は<strong>PSMサーバごとに別のペア</strong>を用意し、資格情報はCPMで管理することが推奨されています。期限切れ・ロックはPSMの接続障害の典型原因です。</p>
 </div>
 
 <h2>3. 接続方法の種類</h2>
@@ -84,14 +84,14 @@
 <p>PSM for SSH（PSMP）は、SSH接続を中継・記録するLinux上のコンポーネントです。利用者は普段のSSHクライアントのまま、接続先の指定方法だけ変えます。</p>
 <pre><code># 書式の例：&lt;Vaultユーザー&gt;@&lt;ターゲットのユーザー&gt;@&lt;ターゲットのアドレス&gt;@&lt;PSM for SSHのアドレス&gt;
 ssh a.takahashi@root@hk-web01.hikari.example@hk-psmp01.hikari.example</code></pre>
-<p class="small muted">実際の書式（区切り文字、ドメインの指定方法など）は環境とバージョンにより異なります。ヒカリ精機では運用手順書に記載しています。</p>
+<p class="small muted">公式ドキュメント（Connect through PSM for SSH）の書式は <code>ssh &lt;Vaultユーザー&gt;@&lt;ターゲットユーザー&gt;[#&lt;ドメイン&gt;]@&lt;ターゲットアドレス&gt;[#&lt;ポート&gt;]@&lt;PSM for SSHのアドレス&gt;</code> です。区切り文字（既定 <code>@</code>・<code>#</code>）は設定で変更でき、SSH鍵認証では <code>-i</code> を付けます。Privilege Cloudでは表記が少し異なるため、該当製品の手順を確認してください。</p>
 <div class="callout key"><span class="ttl">SSHでは「コマンド」が記録される</span>
 <p>PSM for SSHでは、入力したコマンドがテキストで記録されるため、「誰が・いつ・どのサーバで <code>rm -rf</code> を打ったか」を検索できます。危険なコマンドの実行を検知・制限する仕組みと組み合わせることもできます。</p>
 </div>
 
 <h2>5. 監視・録画の運用</h2>
 <ul>
-<li><strong>ライブ監視</strong>：監査担当は進行中のセッションを一覧で見て、画面を覗く・一時停止・強制終了ができます（必要な権限が必要）。</li>
+<li><strong>ライブ監視</strong>：監査担当は進行中のセッションを一覧で見て、画面を覗く（View）・操作に参加する（Control）ことができます（PVWAの <code>AllowMonitor</code>・<code>MonitoringLevel</code> 設定）。一時停止・強制終了は、既定では <code>PSMLiveSessionTerminators</code> グループのメンバーが行えます。</li>
 <li><strong>録画の検索</strong>：アカウント、ターゲット、利用者、期間、入力コマンド等で録画を検索できます。</li>
 <li><strong>保管容量</strong>：録画はデータ量が大きくなります。保持期間（Safeの保持設定）と容量を規程に合わせて設計します。</li>
 <li><strong>PTA連携</strong>：危険な操作を検知したら自動で一時停止・終了する、といった連携が可能です（第12章）。</li>
