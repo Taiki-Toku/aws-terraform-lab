@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch06.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第6章 Safe設計と権限モデル</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 06｜設計・設定</div>
+  <h1>Safe設計と権限モデル</h1>
+  <p class="lead">Safeの切り方は、あとから変えるのが大変な「家の間取り」です。権限は「誰がその部屋に入れて、何ができるか」。ここがCyberArk設計の中心です。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">Safeとは → Safe設計の考え方と命名規則 → Safeメンバーと権限一覧 → 「Use」と「Retrieve」の違い → 権限チェックの流れ</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>組織・システム・環境の観点で、Safeの分割案を作れる</li>
+    <li>主要なSafe権限（List / Use / Retrieve / 承認 等）の意味を説明できる</li>
+    <li>「パスワードを見せずに接続だけさせる」権限設定ができる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 90分</span><span class="chip">前提：第3章</span><span class="chip warn">重点章</span></div>
+</div>
+
+<h2>1. Safeとは</h2>
+<p><strong>Safe</strong>は、アカウント（特権IDの資格情報）をまとめて入れておく<strong>箱</strong>であり、<strong>アクセス権を付与する単位</strong>です。</p>
+<div class="callout analogy"><span class="ttl">銀行の貸金庫の「箱」</span>
+<p>銀行の金庫室（Vault）の中には、たくさんの貸金庫の箱（Safe）が並んでいます。箱ごとに「開けられる人の名簿（Safe Member）」があり、名簿にない人は、たとえ銀行員（Vault管理者）でも勝手に中を見られないようにできます。<strong>権限は「アカウント1件ずつ」ではなく「箱ごと」に付ける</strong>のがポイントです。</p>
+</div>
+
+<div class="point-box">
+  <div class="big">📦</div>
+  <div><p class="one">同じ人たちが、同じ使い方をするアカウントを、同じSafeに入れる。</p>
+  <p class="small muted">権限がSafe単位で付くため、「使う人」と「使い方」がそろっているかがSafe分割の判断基準になります。</p></div>
+</div>
+
+<h2>2. Safe設計の考え方</h2>
+<h3>分割の観点</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>観点</th><th>例</th><th>分ける理由</th></tr></thead>
+<tbody>
+<tr><td>管理する組織・チーム</td><td>インフラ課／DB課／ネットワーク課</td><td>使う人が違う</td></tr>
+<tr><td>環境</td><td>本番（PRD）／検証（STG）／開発（DEV）</td><td>本番だけ承認や録画を厳しくしたい</td></tr>
+<tr><td>ターゲット種別</td><td>Windows／Linux／DB／NW機器</td><td>担当CPM・ポリシーが異なることが多い</td></tr>
+<tr><td>重要度</td><td>ドメイン管理者などの最重要アカウント</td><td>最小人数・二重承認など特別扱い</td></tr>
+<tr><td>利用者種別</td><td>人が使う／アプリが使う（第13章）</td><td>アプリ用は人に見せない権限設計</td></tr>
+<tr><td>外部委託</td><td>保守ベンダー用</td><td>契約単位で付与・剥奪したい</td></tr>
+</tbody></table></div>
+
+<h3>命名規則の例（ヒカリ精機）</h3>
+<pre><code>[会社]-[環境]-[組織]-[種別]-[用途]
+例) HK-PRD-INF-LNX-ROOT   … 本番 インフラ課 Linux rootアカウント
+    HK-PRD-DBA-ORA-SYS    … 本番 DB課 Oracle 管理者
+    HK-STG-INF-WIN-LOCAL  … 検証 インフラ課 Windowsローカル管理者
+    HK-PRD-APP-ORA-APPUSR … 本番 アプリ用 Oracle 接続ユーザー（第13章）
+    HK-PRD-VND-NEXT-WIN   … 本番 委託先（ネクスト保守）用 Windows</code></pre>
+<div class="callout danger"><span class="ttl">Safe名には制約がある</span>
+<p>公式ドキュメントでは、Safe名は<strong>最大28文字</strong>で、<code>\ / : * &lt; &gt; . | ? " % &amp; +</code> などの文字は使えません（Privilege Cloudでは <code>;</code> も不可）。Secrets Hubでクラウドへ同期する場合は、Azure Key Vault（英数字とハイフンのみ）など同期先の命名制約も受けます。また<strong>Safe名は後から変えにくい</strong>（連携設定・スクリプト・レポートが名前に依存する）ため、命名規則は導入初期に決めて文書化しましょう。</p>
+</div>
+
+<div class="callout tip"><span class="ttl">ちょうどよい粒度</span>
+<p>「全部1つのSafe」は権限が粗すぎ、「サーバ1台に1Safe」は管理不能になります。<strong>「権限付与の単位がそろう最大のまとまり」</strong>を目安にしましょう。</p>
+</div>
+
+<h3>Safeのその他の主な設定</h3>
+<ul>
+<li><strong>担当CPM</strong>：そのSafe内のアカウントのパスワード管理をどのCPMが担当するか（第8章）</li>
+<li><strong>保持設定</strong>：過去のパスワード版や操作履歴をどれだけ保持するか（世代数または日数）</li>
+<li><strong>説明・オーナー情報</strong>：Safeの責任者を明記（棚卸しで必須）</li>
+</ul>
+
+<h2>3. Safeメンバーと権限</h2>
+<p>Safeメンバーには、Vaultユーザー、LDAP（AD）ユーザー、グループを追加できます。<mark>個人ではなくADグループを登録</mark>しておけば、異動・退職時はADのグループ変更だけで済みます。</p>
+
+<h3>主な権限一覧</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>分類</th><th>権限（英語表記）</th><th>できること</th></tr></thead>
+<tbody>
+<tr><td rowspan="3">アカウントの利用</td><td><strong>List accounts</strong></td><td>Safe内のアカウント一覧を見る（他の操作の前提）</td></tr>
+<tr><td><strong>Use accounts</strong></td><td>パスワードを<strong>見ずに</strong>アカウントを使う（PSM経由の接続など）</td></tr>
+<tr><td><strong>Retrieve accounts</strong></td><td>パスワードを<strong>表示・コピー</strong>する</td></tr>
+<tr><td rowspan="6">アカウントの管理</td><td>Add accounts</td><td>アカウントを登録する</td></tr>
+<tr><td>Update account content</td><td>パスワード等の値を更新する</td></tr>
+<tr><td>Update account properties</td><td>アドレス・ユーザー名等の属性を更新する</td></tr>
+<tr><td>Initiate CPM account management operations</td><td>CPMの変更・検証・調整を手動で実行する</td></tr>
+<tr><td>Specify next account content</td><td>次回CPMが設定するパスワードを指定する</td></tr>
+<tr><td>Rename / Delete / Unlock accounts</td><td>名前変更・削除・ロック解除</td></tr>
+<tr><td rowspan="4">Safeの管理</td><td>Manage Safe</td><td>Safeのプロパティ変更</td></tr>
+<tr><td>Manage Safe members</td><td>メンバーの追加・削除・権限変更</td></tr>
+<tr><td>Backup Safe</td><td>Safeのバックアップ</td></tr>
+<tr><td>Create / Delete folders、Move accounts and folders</td><td>フォルダ操作</td></tr>
+<tr><td rowspan="2">監査</td><td>View audit log</td><td>Safeの操作ログを見る</td></tr>
+<tr><td>View Safe members</td><td>メンバー一覧を見る</td></tr>
+<tr><td rowspan="2">ワークフロー</td><td>Authorize account requests（レベル1／2）</td><td>アクセス申請を承認する（第9章）</td></tr>
+<tr><td>Access Safe without confirmation</td><td>二重承認が必要なSafeでも承認なしで使える（緊急要員等。付与は慎重に）</td></tr>
+</tbody></table></div>
+
+<h3>「Use」と「Retrieve」の違い（最重要）</h3>
+<div class="grid-2">
+<div class="card" style="border-color:var(--ok)"><h4>✅ List ＋ Use</h4><p>PSM経由で<strong>接続はできるが、パスワードは見えない</strong>。<br>→ 一般の運用担当・委託先に推奨。パスワードを知る人が増えないので、変更頻度を下げても安全性を保ちやすい。</p></div>
+<div class="card" style="border-color:var(--warn)"><h4>⚠ List ＋ Retrieve</h4><p>パスワードを<strong>表示・コピーできる</strong>。<br>→ PSMで対応できない機器や緊急時など、必要な人に限定。見た後はワンタイムパスワード等で変更する運用と組み合わせる。</p></div>
+</div>
+<div class="callout key"><span class="ttl">迷ったら「Use」</span>
+<p>「パスワードを見せない」ことがCyberArkの最大の価値の1つです。Retrieveは<strong>理由がある人にだけ</strong>付けます。</p>
+</div>
+
+<h3>役割ごとの権限セット例</h3>
+<p class="small muted">PVWA・Privilege Cloudの画面では、よく使う組み合わせがプリセット（例：接続のみ、閲覧、承認者、アカウント管理者、フル）として用意されています。名称はバージョンにより異なります。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>役割（ADグループ例）</th><th>主な権限</th></tr></thead>
+<tbody>
+<tr><td>運用担当（<code>GG_PAM_INF_USERS</code>）</td><td>List, Use</td></tr>
+<tr><td>上級運用担当（<code>GG_PAM_INF_ADV</code>）</td><td>List, Use, Retrieve</td></tr>
+<tr><td>承認者（<code>GG_PAM_INF_APPROVERS</code>）</td><td>List, Authorize account requests</td></tr>
+<tr><td>アカウント管理者（<code>GG_PAM_INF_ACCTMGR</code>）</td><td>List, Add, Update content/properties, Initiate CPM operations, Delete</td></tr>
+<tr><td>Safe管理者（<code>GG_PAM_ADMINS</code>）</td><td>Manage Safe, Manage Safe members, View audit, View members（※日常的なアカウント利用権限は付けない）</td></tr>
+<tr><td>監査担当（<code>GG_PAM_AUDITORS</code>）</td><td>List, View audit log, View Safe members</td></tr>
+</tbody></table></div>
+<div class="callout danger"><span class="ttl">職務分掌（SoD）を崩さない</span>
+<p>「Safeのメンバーを管理できる人」が「自分にRetrieveを付けて使う」ことができると、統制が骨抜きになります。<strong>管理する人と使う人を分ける</strong>、自分自身への権限付与を監査ログで監視する、などの対策を組み合わせます。</p>
+</div>
+
+<h2>4. 権限チェックの流れ</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図6-1：利用者がアカウントを使うときのチェック順序</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":260,
+"nodes":[
+{"id":"u","x":10,"y":100,"w":130,"h":60,"label":"利用者","sub":"高橋さん","kind":"user","s":[1]},
+{"id":"auth","x":180,"y":100,"w":130,"h":60,"label":"認証","sub":"AD＋MFA","kind":"comp","s":[1,2]},
+{"id":"grp","x":350,"y":20,"w":140,"h":60,"label":"所属グループ","sub":"GG_PAM_INF_USERS","kind":"comp","s":[2,3]},
+{"id":"safe","x":350,"y":180,"w":140,"h":60,"label":"Safe権限","sub":"List / Use","kind":"vault","s":[3,4]},
+{"id":"pol","x":530,"y":100,"w":130,"h":60,"label":"ポリシー","sub":"承認・理由 等","kind":"vault","s":[4,5]},
+{"id":"ok","x":690,"y":100,"w":100,"h":60,"label":"許可","sub":"監査記録","kind":"target","s":[5]}],
+"edges":[
+{"from":"u","to":"auth","s":[1]},
+{"from":"auth","to":"grp","label":"②","s":[2]},
+{"from":"grp","to":"safe","label":"③","s":[3]},
+{"from":"safe","to":"pol","label":"④","s":[4]},
+{"from":"pol","to":"ok","label":"⑤","s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="本人確認">まず利用者本人であることを確認します（AD認証＋MFA等。第11章）。</li>
+<li data-label="グループ解決">Vaultは利用者が所属するグループ（ADグループのマッピングを含む）を確認します。</li>
+<li data-label="Safe権限の確認">対象アカウントが入っているSafeで、利用者（または所属グループ）に必要な権限（一覧表示ならList、接続ならUse、表示ならRetrieve）があるかを確認します。<strong>権限がなければアカウントは一覧にも表示されません。</strong></li>
+<li data-label="ポリシー確認">Master Policy・プラットフォームのルール（理由入力、二重承認、排他など）を満たしているか確認します（第9章）。</li>
+<li data-label="許可と記録">すべて満たせば利用が許可され、誰が・いつ・どのアカウントを・何のために使ったかが監査ログに記録されます。</li>
+</ol>
+</figure>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Safe名は最大28文字。<code>\ / : * &lt; &gt; . | ? " % &amp; +</code> 等は使用不可</li><li>Safe作成にはVaultの「Add Safes」権限が必要</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Safeの考え方・権限（List / Use / Retrieve 等）は同じ</li><li>Safe名は最大28文字（<code>;</code> も使用不可）</li><li>Safeの作成・削除やメンバー管理は <strong>Privilege Cloud Safe Managers</strong> ロールが担う</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Add a Safe（Self-Hosted）、Create and manage Safes for access control（Privilege Cloud）、ISPSS user roles</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第6章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. 委託先に「PSM経由で接続はさせたいが、パスワードは見せたくない」。付与すべき権限の組み合わせは？</p>
+<ul class="rq-opts"><li>List ＋ Retrieve</li><li>List ＋ Use</li><li>Manage Safe ＋ Retrieve</li><li>View audit log のみ</li></ul>
+<div class="rq-exp">Useはパスワードを見せずに使わせる権限です。Retrieveは表示・コピーできてしまいます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q2. Safeメンバーとして、個人ではなくADグループを登録する主な利点は？</p>
+<ul class="rq-opts"><li>Vaultのライセンス数が減る</li><li>パスワード変更が速くなる</li><li>録画容量が減る</li><li>異動・退職時にADのグループ変更だけで権限が追随する</li></ul>
+<div class="rq-exp">人事異動に伴う権限変更をAD側で一元管理でき、付け忘れ・外し忘れを防げます。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. Safe分割の判断基準として最も適切なのは？</p>
+<ul class="rq-opts"><li>同じ人たちが、同じ使い方をするアカウントをまとめる</li><li>サーバ1台につき1つのSafeを作る</li><li>全アカウントを1つのSafeにまとめる</li><li>アカウントの登録日でまとめる</li></ul>
+<div class="rq-exp">権限がSafe単位で付くため、利用者と使い方がそろう単位でまとめます。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. 二重承認が必要なSafeでも、承認なしで使えるようにする権限は？</p>
+<ul class="rq-opts"><li>Authorize account requests</li><li>View Safe members</li><li>Access Safe without confirmation</li><li>Backup Safe</li></ul>
+<div class="rq-exp">Access Safe without confirmationです。緊急対応要員などに限定して慎重に付与します。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

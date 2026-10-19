@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch14.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第14章 ZSP/JITとモダンアクセス</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 14｜発展</div>
+  <h1>ZSP/JITとモダンアクセス</h1>
+  <p class="lead">「強い権限を持ったアカウントを金庫で守る」から一歩進んで、「そもそも強い権限を常に持たせておかない」へ。クラウド時代の特権アクセスの考え方と、それを実現する製品を学びます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">常設特権・JIT・ZSPの違い → SIA（サーバ・DB・Kubernetes）→ SIAでの接続フロー → SCA（クラウド管理画面）→ EPM（端末）→ Remote Access（委託先）→ Vault型との組み合わせ</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>常設特権・JIT・ZSPの違いを例え話で説明できる</li>
+    <li>SIA・SCA・EPM・Remote Accessが何を解決する製品かを説明できる</li>
+    <li>Vault型PAMとZSP型アクセスをどう組み合わせるかを説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 70分</span><span class="chip">前提：第1・10・11章</span></div>
+</div>
+
+<h2>1. 常設特権・JIT・ZSP</h2>
+<div class="callout analogy"><span class="ttl">会議室の使い方で考える</span>
+<p><strong>常設特権</strong>：あなた専用の会議室の合鍵を常に持っている。使っていない夜中でも、鍵を落とせば誰でも入れる。<br>
+<strong>JIT（ジャストインタイム）</strong>：会議の時間だけ受付で鍵を借りる。ただし借りた鍵は全会議室共通のマスターキーかもしれない。<br>
+<strong>ZSP（ゼロ・スタンディング特権）</strong>：会議のたびに「その部屋の、その時間だけ開く」専用の鍵がその場で作られ、終わったら消える。普段は誰も鍵を持っていない。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>方式</th><th>権限を持っている時間</th><th>権限の範囲</th><th>盗まれたときの被害</th></tr></thead>
+<tbody>
+<tr><td>常設特権</td><td>常に</td><td>広いことが多い</td><td>最大</td></tr>
+<tr><td>JIT</td><td>必要なときだけ</td><td>あらかじめ用意された権限（広い場合もある）</td><td>時間的に限定</td></tr>
+<tr><td><strong>ZSP</strong></td><td>セッションの間だけ</td><td>そのタスクに必要な最小限（その場で作成・終了後に削除）</td><td>時間的にも範囲的にも限定</td></tr>
+</tbody></table></div>
+<div class="point-box">
+  <div class="big">⏱</div>
+  <div><p class="one">ZSP＝「必要なときに・必要なだけ・必要な間だけ」。終わったら権限そのものが消える。</p>
+  <p class="small muted">攻撃者が狙う「放置された強い権限」そのものをなくすのが狙いです。</p></div>
+</div>
+
+<h2>2. Secure Infrastructure Access（SIA）</h2>
+<p>SIA（2024年10月に Dynamic Privileged Access から改称。改称時に、ZSPに加えてVaultに格納した資格情報での接続にも対応）は、Windows／Linuxサーバ、データベース、Kubernetesなどへの特権アクセスを、<strong>JIT・ZSPの考え方で提供するSaaS</strong>です。</p>
+<ul>
+<li><strong>VPN・踏み台が不要</strong>：顧客ネットワーク内のコネクタが外向きに接続する方式で、インバウンドの穴を開けずに利用できる</li>
+<li><strong>一時的な資格情報</strong>：セッションごとに短命な資格情報（一時的なユーザー・証明書など）を用意し、終了後に無効化</li>
+<li><strong>ネイティブクライアント</strong>：利用者は普段のSSHクライアント・RDPクライアント・DBクライアントで接続できる</li>
+<li><strong>属性ベースのポリシー</strong>：クラウドのタグやネットワーク範囲などの属性で「誰が・どこに・いつ」アクセスできるかを定義</li>
+<li><strong>セッションの記録・監査</strong>：プラットフォーム共通の監査に記録</li>
+</ul>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図14-1：SIAによるLinuxサーバへのZSPアクセス（概念図）</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":340,
+"zones":[{"x":10,"y":10,"w":380,"h":115,"label":"CyberArk SaaS（ISPSS）"},{"x":410,"y":175,"w":380,"h":150,"label":"顧客ネットワーク／クラウド"}],
+"nodes":[
+{"id":"id","x":30,"y":45,"w":150,"h":65,"label":"Identity","sub":"認証・MFA","kind":"cloud","s":[1]},
+{"id":"sia","x":220,"y":45,"w":150,"h":65,"label":"SIA","sub":"ポリシー評価","kind":"cloud","s":[2,3,4,6]},
+{"id":"u","x":30,"y":235,"w":150,"h":65,"label":"高橋さん","sub":"ネイティブSSH","kind":"user","s":[1,4,5]},
+{"id":"con","x":430,"y":225,"w":150,"h":70,"label":"SIAコネクタ","sub":"外向き接続のみ","kind":"comp","s":[4,5]},
+{"id":"t","x":630,"y":225,"w":150,"h":70,"label":"hk-web02","sub":"AWS上のLinux\n一時ユーザー","kind":"target","s":[3,5,6]}],
+"edges":[
+{"from":"u","to":"id","label":"①ログイン＋MFA","lx":-2,"ly":0,"s":[1]},
+{"from":"u","to":"sia","label":"④接続要求","lx":40,"ly":10,"s":[4]},
+{"from":"con","to":"sia","label":"外向き接続","dashed":true,"lx":-20,"ly":-4,"s":[4]},
+{"from":"sia","to":"t","label":"③一時的な資格情報／⑥終了後に無効化","lx":60,"ly":-10,"s":[3,6]},
+{"from":"u","to":"con","label":"⑤SSHセッション","s":[5]},
+{"from":"con","to":"t","s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="認証">高橋さんはIdentityで認証し、MFAで本人確認します。</li>
+<li data-label="ポリシー評価">SIAは、高橋さんのロール・接続先の属性（例：AWSタグ <code>Env=Prod</code>, <code>Team=Infra</code>）・時間帯などから、アクセスを許可するかと付与する権限を判定します。</li>
+<li data-label="一時的な資格情報">許可されると、そのセッション専用の短命な資格情報（一時ユーザーや短命の証明書など）が用意されます。<strong>サーバ上に常設の管理者パスワードは不要</strong>です。</li>
+<li data-label="接続要求">高橋さんは普段使いのSSHクライアントで接続先を指定します。SIAのコネクタは外向きにSaaSへ接続しているため、インバウンドのFW開放やVPNは不要です。</li>
+<li data-label="セッション">コネクタ経由でセッションが確立し、操作は記録されます。</li>
+<li data-label="終了と削除">セッション終了後、一時的な資格情報は無効化・削除されます。<strong>次に必要になるまで、誰も特権を持っていない状態</strong>に戻ります。</li>
+</ol>
+</figure>
+<div class="callout verify"><span class="ttl">一時的な資格情報の方式（公式ドキュメント 2026-10-19 確認）</span><p>Linuxでは<strong>短命のSSH証明書</strong>（接続ごとに新しく発行され、数分で無効化）、Windows（RDP）では<strong>一時的なローカルユーザーまたはドメインユーザー</strong>、データベースではエンジンに応じて一時的なローカル／ドメインユーザーやRDSのIAM資格情報が使われます。セッション終了時や、無操作・時間帯・セッション時間などのポリシー制限に達した時点でアクセスが取り除かれます。詳細は設計時に対象ごとの公式手順で確認してください。</p></div>
+
+<h2>3. Secure Cloud Access（SCA）</h2>
+<p>SCAは、AWS・Azure・GCPなどの<strong>クラウド管理コンソールやCLIへの特権</strong>を、必要な時間だけ付与するSaaSです。</p>
+<ul>
+<li>常設の強いクラウドロール（管理者ロール等）を利用者に割り当てておかない</li>
+<li>利用者は必要なときに申請し、ポリシー（必要なら承認）に基づいて期間限定でロールが付与される</li>
+<li>期間が終わると自動で剥奪される</li>
+</ul>
+
+<h2>4. Endpoint Privilege Manager（EPM）</h2>
+<div class="callout analogy"><span class="ttl">社用車の「スペアキー」を全員に配らない</span>
+<p>PCのローカル管理者権限は、社員全員に社用車のスペアキーを配るようなものです。便利ですが、マルウェアも同じ権限で動けてしまいます。EPMはスペアキーを回収し、「このアプリのインストールだけ」「この設定変更だけ」をその場で許可します。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>機能</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>最小権限（特権の除去と昇格）</td><td>ローカル管理者権限を取り除き、ポリシーで許可したアプリ・操作だけ昇格させる。必要に応じて申請→一時的な昇格（JIT）</td></tr>
+<tr><td>アプリケーション制御</td><td>許可・ブロック・制限付き実行など、アプリごとに実行を制御</td></tr>
+<tr><td>資格情報窃取対策</td><td>OSやブラウザ等に保存された資格情報を狙う窃取の試みを検知・ブロック</td></tr>
+<tr><td>ランサムウェア対策</td><td>不審なファイル暗号化等の振る舞いからの保護</td></tr>
+</tbody></table></div>
+<p class="small muted">EPMは現在SaaSで提供され、Windows・macOS・Linuxに対応しています（対応OSは公式ドキュメントで確認）。公式のEnd of Life Policyによると、オンプレミス版は2021年1月6日に段階的終了が告知され、<strong>2023年12月31日でサポートが終了</strong>しています（2026-10-19確認）。</p>
+
+<h2>5. Remote Access（委託先アクセス）</h2>
+<ul>
+<li>保守委託先（例：ネクスト保守サービスの小林さん）が、<strong>VPNなし</strong>で必要なシステムにだけアクセスできる</li>
+<li>委託先の担当者ごとにADアカウントやVPNアカウントを作らずに済む（JITでの登録）</li>
+<li>モバイルアプリ（旧Aleroアプリ。現在はIdira Mobileアプリ）でワンタイムのQRコードを読み取り、顔・指紋認証で本人確認（生体情報はスマートフォン内に留まる）。Remote Accessは2021年にAleroから改称</li>
+<li>アクセスはPSM等を経由するため、パスワードは渡さず、操作は録画される</li>
+</ul>
+
+<h2>6. Vault型PAMとZSP型をどう組み合わせるか</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>対象</th><th>向いている方式</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>ネットワーク機器、古いOS、パッケージ製品の管理者</td><td>Vault型（PAM＋CPM＋PSM）</td><td>一時ユーザーを作れない・固定の管理者アカウントが必要なものが多い</td></tr>
+<tr><td>緊急用アカウント（ブレークグラス）、ドメイン管理者</td><td>Vault型（厳格なワークフロー）</td><td>どうしても常設が必要なものは金庫で守る</td></tr>
+<tr><td>クラウド上のLinux/Windows、DB、Kubernetes</td><td>ZSP型（SIA）</td><td>動的に増減し、属性で制御しやすい</td></tr>
+<tr><td>クラウド管理コンソール</td><td>ZSP/JIT型（SCA）</td><td>ロールの一時付与で常設特権をなくせる</td></tr>
+<tr><td>社員PCのローカル管理者</td><td>EPM</td><td>端末の権限そのものを最小化</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">「どちらか」ではなく「両方」</span>
+<p>現実の企業には古いシステムとクラウドが混在します。<strong>常設が避けられないものはVaultで守り、なくせる常設特権はZSPでなくす</strong>——これが現在の設計の主流の考え方です。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第14章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. ZSP（ゼロ・スタンディング特権）の説明として最も適切なのは？</p>
+<ul class="rq-opts"><li>全員に常に管理者権限を与える</li><li>管理者パスワードを長くする</li><li>必要なときにタスクに必要な最小限の権限をその場で作り、終了後に削除する</li><li>特権アカウントをExcelで管理する</li></ul>
+<div class="rq-exp">常設の特権をなくし、セッション単位で最小権限を付与・削除します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. AWS管理コンソールの管理者ロールを、必要な時間だけ付与したい。適切な製品は？</p>
+<ul class="rq-opts"><li>SCA（Secure Cloud Access）</li><li>EPM</li><li>CCP</li><li>PSM for SSH</li></ul>
+<div class="rq-exp">SCAはクラウドのロールを期間限定で付与します。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. 社員PCのローカル管理者権限を取り除き、特定アプリのインストールだけ昇格させたい。適切な製品は？</p>
+<ul class="rq-opts"><li>SIA</li><li>Secrets Hub</li><li>Remote Access</li><li>EPM（Endpoint Privilege Manager）</li></ul>
+<div class="rq-exp">EPMは端末のローカル管理者権限を最小化する製品です。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q4. Vault型PAMで守るのが向いている対象は？</p>
+<ul class="rq-opts"><li>オートスケールで増減するクラウド上のLinuxサーバ</li><li>一時ユーザーを作れない古いネットワーク機器の管理者アカウント</li><li>Kubernetesのワークロード</li><li>クラウドの管理コンソール</li></ul>
+<div class="rq-exp">固定の管理者アカウントが必要な機器は、Vaultに格納してCPM・PSMで守ります。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

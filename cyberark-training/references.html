@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="references.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出典と公式ナレッジ</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">はじめに｜参考出典・公式ナレッジ</div>
+  <h1>参考出典・公式ナレッジ</h1>
+  <p class="lead">困ったときに「どこを見れば正しい答えがあるか」を知っておくことは、製品知識そのものより大切です。</p>
+  <ul class="goal-list">
+    <li>公式ドキュメント・公式トレーニング・コミュニティの使い分けがわかる</li>
+    <li>本教材の各記述がどの情報で裏付けられているか（検証状況）を確認できる</li>
+  </ul>
+</div>
+
+<div class="callout analogy"><span class="ttl">情報源は「病院」と同じ</span>
+<p>公式ドキュメントは<strong>主治医の診断書</strong>、公式ナレッジベース（サポート記事）は<strong>専門医の所見</strong>、コミュニティやブログは<strong>知人の体験談</strong>です。体験談は参考になりますが、最終判断は必ず診断書（公式ドキュメント）で行います。</p>
+</div>
+
+<h2>公式情報源</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>情報源</th><th>URL</th><th>使いどころ</th></tr></thead>
+<tbody>
+<tr><td>Idira（CyberArk）Docs（公式ドキュメントポータル）</td><td><a href="https://docs.cyberark.com/" target="_blank" rel="noopener">docs.cyberark.com</a></td><td>製品ごとの設計・インストール・設定・リリースノート。<strong>右上でバージョンを必ず合わせる</strong>（PAM Self-Hosted / Privilege Cloud / Identity Security Platform Shared Services / Secure Infrastructure Access / Endpoint Privilege Manager / Secrets Manager / Secrets Hub など）</td></tr>
+<tr><td>ISPSS 導入ドキュメント</td><td><a href="https://docs.cyberark.com/setup/latest/en/content/ispss-deployment/deployment/deploy-outbound_traffic.htm" target="_blank" rel="noopener">ISPSS 導入・外向き通信要件</a></td><td>SaaSプラットフォーム（Identity Security Platform Shared Services）の初期構築・コネクタ要件</td></tr>
+<tr><td>製品名の変更（ドキュメント内の告知）</td><td><a href="https://docs.cyberark.com/secrets-manager-saas/latest/en/content/conjurcloud/cl_conjurcloudoverview.htm" target="_blank" rel="noopener">Secrets Manager, SaaS の改称告知</a>ほか各製品の What's new</td><td>旧名⇔新名の対応。旧 cyberark.com の「Product Name Updates」ページは現在 Idira のページへ転送されるため、各製品ドキュメントの告知・リリースノートで確認する</td></tr>
+<tr><td>Idira 製品サイト（Palo Alto Networks）</td><td><a href="https://www.paloaltonetworks.com/idira" target="_blank" rel="noopener">paloaltonetworks.com/idira</a></td><td>製品の全体像・最新の製品名。www.cyberark.com は現在このページへ転送される</td></tr>
+<tr><td>Palo Alto Networks プレスリリース</td><td><a href="https://www.paloaltonetworks.com/company/press/2026" target="_blank" rel="noopener">paloaltonetworks.com/company/press</a></td><td>買収・新ブランド・新機能などの公式発表</td></tr>
+<tr><td>CyberArk University（公式トレーニング）</td><td><a href="https://training.cyberark.com/learn" target="_blank" rel="noopener">training.cyberark.com</a></td><td>公式eラーニング・認定資格。資格は運用向けの <strong>Defender</strong>（PAM・EPM・IAM〔旧Access〕など）、構築向けの <strong>Sentry</strong>（PAM・Secrets Manager など）、上級の <strong>Guardian</strong> の3段階。サイト上でも「CyberArk is now Idira」と案内されており、試験名は変わることがあるため受験前に最新情報を確認（2026-10-19 リンク確認）</td></tr>
+<tr><td>CyberArk Community / サポートポータル</td><td><a href="https://community.cyberark.com/s/" target="_blank" rel="noopener">community.cyberark.com</a></td><td>ナレッジ記事（KB）、Q&amp;A、ソフトウェアダウンロード、ケース起票（多くは要ログイン。2026-10-19 リンク確認）</td></tr>
+<tr><td>CyberArk Marketplace</td><td>コミュニティ／サポートポータルから遷移</td><td>プラグイン（CPMプラグイン・PSMコネクタ）や連携モジュール</td></tr>
+<tr><td>CyberArk GitHub</td><td><a href="https://github.com/cyberark" target="_blank" rel="noopener">github.com/cyberark</a></td><td>公式のOSS・ツール（例：<a href="https://github.com/cyberark/CYBRHardeningCheck" target="_blank" rel="noopener">CYBRHardeningCheck</a>＝コンポーネント堅牢化チェック）</td></tr>
+</tbody></table></div>
+
+<div class="callout key"><span class="ttl">ドキュメントは「製品×バージョン」で引く</span>
+<p>Self-Hosted（オンプレ）とPrivilege Cloud（SaaS）では、同じ機能名でも画面・手順・制約が異なります。検索で出てきたページの<strong>製品名とバージョン表記</strong>を必ず確認してください。</p>
+</div>
+
+<h2>本教材の検証方針と検証状況</h2>
+<p>本教材では、ハルシネーション（もっともらしい誤情報）を避けるため、主要な記述について次の手順で正誤判定を行いました。</p>
+<ol>
+<li>公式ドキュメント（docs.cyberark.com）の該当ページを実際に取得し、記載内容と照合</li>
+<li>公式ドキュメントで扱っていない会社動向等は、公的書類（SEC提出書類）や複数の独立した報道と照合</li>
+<li>照合の結果、記述が公式と異なっていたものは修正し、表に「記述を修正」と明記</li>
+</ol>
+<div class="callout verify"><span class="ttl">検証の経緯</span>
+<p>初版作成時（2026-10-18）は作成環境から docs.cyberark.com に接続できず、検索経由の確認にとどまっていました。2026-10-19 にネットワーク許可を追加して公式ドキュメントを直接取得し、全「要確認」項目を照合しました。その結果、<strong>Privilege Cloudコネクタの通信要件（443に加えTCP 1858が必要）</strong>と<strong>Masterユーザーの権限の正確な範囲</strong>を修正し、<strong>PAM Self-Hosted 15.2（LTS）</strong>などの最新情報を追加しました。同日、www.paloaltonetworks.com への接続も許可され、買収・Idiraに関する記述をPalo Alto Networksの公式プレスリリースで確認しました（www.cyberark.com は現在 Idira の製品ページへ転送されます）。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>主な記述</th><th>章</th><th>照合した情報</th><th>判定</th><th>最終確認日</th></tr></thead>
+<tbody><tr><td>Palo Alto NetworksによるCyberArk買収は2025年7月30日に合意、2026年2月11日に完了。CyberArk製品は単独プラットフォームとしても提供継続、既存顧客への影響なし</td><td>2</td><td><a href="https://www.paloaltonetworks.com/company/press/2026/palo-alto-networks-completes-acquisition-of-cyberark-to-secure-the-ai-era" target="_blank" rel="noopener">Palo Alto Networks プレスリリース（2026/2/11）</a>、SEC 10-Q・8-K</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>2026年5月12日にIdira発表（同日一般提供開始）。既存CyberArk顧客はそのまま利用でき、公式ドキュメントも「Idira Docs」表記に移行中</td><td>2</td><td><a href="https://www.paloaltonetworks.com/company/press/2026/palo-alto-networks-introduces-idira--the-next-generation-identity-security-platform-built-for-the-ai-enterprise" target="_blank" rel="noopener">Palo Alto Networks プレスリリース（2026/5/12）</a>、PAM SH 15.2 リリースノート</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Conjur Cloud → Secrets Manager, SaaS（2025年9月7日改称）／Conjur Enterprise → Secrets Manager, Self-Hosted</td><td>2, 13</td><td><a href="https://docs.cyberark.com/secrets-manager-saas/latest/en/content/conjurcloud/cl_conjurcloudoverview.htm" target="_blank" rel="noopener">Idira Docs：改称告知</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>SIAは2024年10月にDynamic Privileged Accessから改称、ZSPに加えVault格納の資格情報にも対応</td><td>2, 14</td><td><a href="https://docs.cyberark.com/ispss-access/latest/en/content/getstarted/acc-intro.htm" target="_blank" rel="noopener">SIA 概要</a>／What's new</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Remote Accessは2021年にAleroから改称、モバイルアプリはIdira Mobile</td><td>2, 14</td><td><a href="https://docs.cyberark.com/privilege-cloud-standard/latest/en/content/privilege%20cloud/privcloud-connect-using-alero.htm" target="_blank" rel="noopener">Vendors: Connect using Remote Access</a>／Remote Access What's new</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>PAM SH 15.2はLTS（2026/7、開発終了・サポート終了2029/7）、15.0はSTS（2025/12、開発終了2026/12、サポート終了2027/12）</td><td>15</td><td><a href="https://docs.cyberark.com/end-of-life-policy/latest/en/content/eol-self-hosted-products.htm" target="_blank" rel="noopener">End of Life Policy：Self-hosted products</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>アップグレードはLTS→LTSまたは最新版のみサポート。順序は Vault→PVWA→CPM→他（Primary→DR→コンポーネント）</td><td>15</td><td><a href="https://docs.cyberark.com/end-of-life-policy/latest/en/content/eol-self-hosted-products.htm" target="_blank" rel="noopener">EOL Policy</a>、<a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20sysreq/compatibility_component_versions.htm" target="_blank" rel="noopener">互換性ページ</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Vaultへの通信は TCP 1858（既定・変更可）</td><td>3, 4</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20sysreq/network%20ports%20overview.htm" target="_blank" rel="noopener">Network ports overview</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>VaultはWindowsファイアウォールを堅牢化し既定で1858のみ許可。ドメイン非参加・専用サーバ</td><td>4</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20sysreq/standard%20ports%20-%20vault.htm" target="_blank" rel="noopener">Standard Vault Ports and Protocols</a>、公式GitHub CYBRHardeningCheck</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Masterは承認権限を除く全Safe権限・どのSafeからも削除不可・Master CDでのみログイン。Master以外の組み込みユーザーは初期状態で無効</td><td>4</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/predefined-users-and-groups.htm" target="_blank" rel="noopener">Predefined users and groups</a></td><td><span class="chip ok">公式一致（記述を修正）</span></td><td>2026-10-19</td></tr><tr><td>Privilege Cloudのコネクタは外向き TCP 443 と TCP 1858（TLS 1.2以上）、送信元公開IPの届け出、IPv4のみ</td><td>5</td><td><a href="https://docs.cyberark.com/privilege-cloud-standard/latest/en/content/privilege%20cloud/privcloud-sys-req-networks.htm" target="_blank" rel="noopener">Outbound traffic network and port requirements</a></td><td><span class="chip ok">公式一致（記述を修正）</span></td><td>2026-10-19</td></tr><tr><td>Safe名は最大28文字、使用不可文字あり</td><td>6</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/safes-add-a-safe.htm" target="_blank" rel="noopener">Add a Safe</a>、Privilege Cloud「Create and manage Safes」</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Safe権限 List / Use / Retrieve accounts の意味</td><td>6</td><td>大学の公開手順書、連携ベンダー公式ドキュメント、psPAS</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr><tr><td>CPMの変更・検証・調整、ログ（pm.log・pm_error.log）</td><td>7, 8</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/cpmlogging.htm" target="_blank" rel="noopener">CPM logs</a>、Ansible公式コレクション</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Master Policyの既定値（二重承認・排他・ワンタイム無効、理由入力・記録有効、変更90日・検証7日、監査90日）</td><td>9</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/the-master-policy.htm" target="_blank" rel="noopener">Understand the master policy framework</a>、Privilege Cloud「Master policy rules and settings」</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>PSMConnect＝セッション開始、PSMAdminConnect＝ライブ監視・制御。終了・一時停止は既定でPSMLiveSessionTerminators</td><td>10</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20inst/optional-moving-the-psmconnec-and-psmadminconnect-users-to-your-domain.htm" target="_blank" rel="noopener">PSMConnect and PSMAdminConnect</a>、<a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/configuring-live-session-monitoring.htm" target="_blank" rel="noopener">Active session monitoring in PSM</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>PSM for SSHの接続書式</td><td>10</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/pasimp/psso-pmsp.htm" target="_blank" rel="noopener">Connect through PSM for SSH</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>PTAは資格情報窃取の疑い・管理外特権アクセス等を検知し、自動ローテーション・セッション停止が可能</td><td>12</td><td>CyberArk公式GitHub、SIEM連携ベンダー文書、CyberArk公式ブログ</td><td><span class="chip ok">一致</span></td><td>2026-10-18</td></tr><tr><td>CCPの取得URL（/AIMWebService/api/Accounts、AppID必須）とPOSTの推奨</td><td>13</td><td><a href="https://docs.cyberark.com/credential-providers/latest/en/content/ccp/calling-the-web-service-using-rest.htm" target="_blank" rel="noopener">Call the Web Service using REST</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Secrets Hubの同期先：AWS Secrets Manager・Azure Key Vault・GCP Secret Manager・HashiCorp Vault</td><td>13</td><td><a href="https://docs.cyberark.com/secrets-hub-privilege-cloud/latest/en/content/secretshubcontent/sh-support.htm" target="_blank" rel="noopener">Secrets Hub support and scope</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>SIAの一時的な資格情報（Linux：短命SSH証明書、Windows：一時ローカル／ドメインユーザー等）</td><td>14</td><td><a href="https://docs.cyberark.com/setup/latest/en/content/privileged-access/setup/set-up-windows-zsp-access.htm" target="_blank" rel="noopener">Windows ZSP access</a>ほか SIA 文書</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>EPMオンプレ版は2021/1/6に終了告知、2023/12/31でサポート終了</td><td>14</td><td><a href="https://docs.cyberark.com/end-of-life-policy/latest/en/content/eol-self-hosted-products.htm" target="_blank" rel="noopener">End of Life Policy</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Blueprintの3原則（侵害の防止・横／縦移動の阻止・権限昇格と悪用の制限）</td><td>15</td><td><a href="https://docs.cyberark.com/cyberark-blueprint/latest/en/content/attack-chain.htm" target="_blank" rel="noopener">CyberArk Blueprint</a>（docs）</td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>REST APIのログオン（/PasswordVault/API/auth/{CyberArk|LDAP}/Logon）</td><td>15, 16</td><td><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/sdk/cyberark%20authentication%20-%20logon_v10.htm" target="_blank" rel="noopener">Logon（REST）</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Privilege Cloudの推奨コネクタ構成はConnector Managementエージェント＋PSM。パスワード変更はSaaSのSecrets Rotation Service（CPMと同じプラグイン、エージェント経由で実行）</td><td>3, 5, 8</td><td><a href="https://docs.cyberark.com/setup/latest/en/content/ispss-deployment/privilege%20cloud/privcloud-install.htm" target="_blank" rel="noopener">Deploy Privilege Cloud Connector</a>、<a href="https://docs.cyberark.com/privilege-cloud-secrets-rotation/latest/en/content/privilege%20cloud/privcloud-srs-architecture.htm" target="_blank" rel="noopener">SRS architecture</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Privilege CloudではRDP・SSH・DBはSIAを推奨、Web・クラウドコンソール・ESX/vCenter・ファットクライアントはPSM</td><td>5, 10</td><td><a href="https://docs.cyberark.com/manage/latest/en/content/privilege-cloud/privilege%20cloud/privcloud-access-options.htm" target="_blank" rel="noopener">Set up target access for privileged sessions</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Privilege Cloudの組み込みロール（Administrators／Auditors／Safe Managers）とライセンスの関係</td><td>4, 6, 11</td><td><a href="https://docs.cyberark.com/identity-administration/latest/en/content/coreservices/getstarted/ispss-user-roles.htm" target="_blank" rel="noopener">Review ISPSS user roles</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Privilege CloudのSIEM連携（Syslog、TLS推奨・UDP非対応・最大5台）</td><td>12</td><td><a href="https://docs.cyberark.com/privilege-cloud-standard/latest/en/content/privilege%20cloud/privcloud-connect-siem.htm" target="_blank" rel="noopener">Connect to SIEM</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr><tr><td>Privilege Cloudコネクタの更新は管理者がConnector Managementから実行（数分の停止、GPO堅牢化パッケージを先に更新）</td><td>5, 15</td><td><a href="https://docs.cyberark.com/setup/latest/en/content/connector-management/cm_upgrade_connector.htm" target="_blank" rel="noopener">Upgrade connector components</a></td><td><span class="chip ok">公式一致</span></td><td>2026-10-19</td></tr></tbody></table></div>
+
+<h2>情報の鮮度を保つ運用ルール</h2>
+<p>CyberArk製品は、ブランド統合（Idira）や製品名変更が続いている時期です。教材の記述が古くならないよう、次のルールで見直します。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>頻度</th><th>担当</th><th>確認すること</th></tr></thead>
+<tbody>
+<tr><td>四半期ごと（1・4・7・10月）</td><td>教材オーナー（PAMチーム）</td><td>公式「Product Name Updates」・各製品のリリースノート（What's New）・サポート期間（EOL）ページを確認し、該当章と用語集・問題バンクを更新。上表の「最終確認日」を更新</td></tr>
+<tr><td>Self-Hosted新バージョン公開時</td><td>教材オーナー</td><td>第3・4・8・10・15章のポート・コンポーネント・アップグレード手順に影響がないか確認</td></tr>
+<tr><td>研修実施前（毎回）</td><td>講師</td><td>検証表の項目を、自社で使う製品・バージョンの公式ドキュメントで確認。ハンズオン環境（Self-Hosted／Privilege Cloud）のバージョンを確認</td></tr>
+<tr><td>受講者からの指摘時</td><td>講師</td><td>指摘内容を公式ドキュメントで確認し、正しければ修正して最終確認日を更新</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">見直しチェックリスト</span>
+<ul class="checklist" data-key="fresh">
+<li>製品名・ブランド名の変更がないか（第2章・用語集）</li>
+<li>Self-Hostedの最新バージョンとサポート区分（STS/LTS）に変更がないか（第15章）</li>
+<li>Privilege Cloudのコネクタ要件（OS・通信先）の変更がないか（第5章）</li>
+<li>新製品・機能（AIエージェントのID保護など）の追加がないか（第2・14章）</li>
+<li>問題バンク・ケーススタディの正解が最新仕様と矛盾していないか</li>
+<li>上表の「最終確認日」と次回見直し予定日を更新したか</li>
+</ul>
+</div>
+<p class="small muted">次回見直し予定：2027年1月</p>
+
+<h2>参照した主な外部情報（公式以外を含む）</h2>
+<ul class="small">
+<li><a href="https://www.sec.gov/Archives/edgar/data/1327567/000132756726000005/panw-20260131.htm" target="_blank" rel="noopener">Palo Alto Networks Form 10-Q（FY2026）</a></li>
+<li><a href="https://www.sdxcentral.com/news/palo-alto-networks-rebrands-cyberark-with-idira-platform-release/" target="_blank" rel="noopener">SDxCentral：Palo Alto Networks rebrands CyberArk with Idira</a> ／ <a href="https://siliconangle.com/2026/05/12/idira-launches-palo-alto-networks-extends-cyberark-tech-machine-agentic-identities/" target="_blank" rel="noopener">SiliconANGLE（2026/05/12）</a></li>
+<li><a href="https://www.paloaltonetworks.com/company/press/2025/palo-alto-networks-announces-agreement-to-acquire-cyberark--the-identity-security-leader" target="_blank" rel="noopener">Palo Alto Networks：CyberArk買収合意の発表（2025/7/30）</a> ／ <a href="https://www.paloaltonetworks.com/company/press/2026/palo-alto-networks-completes-acquisition-of-cyberark-to-secure-the-ai-era" target="_blank" rel="noopener">買収完了の発表（2026/2/11）</a> ／ <a href="https://www.paloaltonetworks.com/company/press/2026/palo-alto-networks-introduces-idira--the-next-generation-identity-security-platform-built-for-the-ai-enterprise" target="_blank" rel="noopener">Idira発表（2026/5/12）</a></li>
+<li><a href="https://docs.cyberark.com/secrets-manager-saas/latest/en/content/conjurcloud/cl_conjurcloudoverview.htm" target="_blank" rel="noopener">Idira Docs：Conjur Cloud → Secrets Manager, SaaS 改称告知</a></li>
+<li><a href="https://docs.cyberark.com/pam-self-hosted/latest/en/content/release%20notes/rn-whatsnew.htm" target="_blank" rel="noopener">Idira Docs：PAM Self-Hosted What's New（リリースノート）</a></li>
+<li><a href="https://docs.cyberark.com/secrets-hub-privilege-cloud/latest/en/content/secretshubcontent/whatsnew.htm" target="_blank" rel="noopener">Idira Docs：Secrets Hub What's new</a></li>
+<li><a href="https://docs.cyberark.com/ispss-access/latest/en/content/getstarted/acc-intro.htm" target="_blank" rel="noopener">Idira Docs：Secure Infrastructure Access 概要</a> ／ <a href="https://docs.cyberark.com/cyberark-blueprint/latest/en/content/state-of-privilege-access-hierarchy.htm" target="_blank" rel="noopener">Blueprint：State of privilege and access hierarchy（ZSPの位置づけ）</a></li>
+<li><a href="https://github.com/cyberark/CYBRHardeningCheck" target="_blank" rel="noopener">GitHub：cyberark/CYBRHardeningCheck</a> ／ <a href="https://github.com/cyberark/Forward-AWS-logs-to-PAS" target="_blank" rel="noopener">GitHub：cyberark/Forward-AWS-logs-to-PAS</a></li>
+<li><a href="https://kb.wisc.edu/security/page.php?id=110939" target="_blank" rel="noopener">University of Wisconsin KB：CyberArk</a> ／ <a href="https://docs.venafi.com/Docs/26.1/TopNav/Content/Credentials/t-CyberArk-elevate-permissions.php" target="_blank" rel="noopener">Venafi Docs：CyberArk連携の権限要件</a></li>
+<li><a href="https://docs.uipath.com/orchestrator/automation-cloud/latest/user-guide/integrating-credential-stores" target="_blank" rel="noopener">UiPath Docs：Credential Store連携（CCP / Secrets Manager）</a></li>
+<li><a href="https://docs.ansible.com/ansible/7/collections/cyberark/pas/cyberark_account_module.html" target="_blank" rel="noopener">Ansible Docs：cyberark.pas.cyberark_account</a></li>
+<li><a href="https://www.elastic.co/docs/reference/integrations/cyberark_pta" target="_blank" rel="noopener">Elastic Docs：CyberArk PTA integration</a></li>
+<li><a href="https://blog.51sec.org/2023/12/understanding-cyberark-cpm.html" target="_blank" rel="noopener">NetSec：Understanding CyberArk CPM</a> ／ <a href="https://51sec.org/2020/06/02/cyberark-notes-2" target="_blank" rel="noopener">NetSec：CyberArk Notes（PSM）</a></li>
+</ul>
+<p class="small muted">※二次情報は「公式記載の補強」としてのみ使用しています。</p>
+
+</div></main>
+<script src="assets/app.js"></script>
+</body>
+</html>

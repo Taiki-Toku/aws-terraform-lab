@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch11.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第11章 認証・ユーザー管理・ID連携</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 11｜利用・監視</div>
+  <h1>認証・ユーザー管理・ID連携</h1>
+  <p class="lead">金庫の鍵をいくら厳重に管理しても、「金庫室に入る人の本人確認」が甘ければ意味がありません。CyberArkへのログインの仕組みと、ユーザー・グループ管理の考え方を学びます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">ユーザーの種類 → 認証方式（Vault認証・LDAP・RADIUS・SAML・MFA）→ LDAP連携（Directory Mapping）→ Privilege Cloudでの認証（Identity）→ SAML認証の流れ → 設計の勘所</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>CyberArkで使える主な認証方式と、MFAが必須である理由を説明できる</li>
+    <li>ADグループとVault権限をつなぐ「LDAP連携」の仕組みを説明できる</li>
+    <li>SAMLによるシングルサインオンの流れを説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 60分</span><span class="chip">前提：第6章</span></div>
+</div>
+
+<h2>1. ユーザーの種類</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>種類</th><th>概要</th><th>例</th></tr></thead>
+<tbody>
+<tr><td>Vault（内部）ユーザー</td><td>Vault内に直接作成されるユーザー</td><td>組み込みユーザー、緊急用の管理者、コンポーネント用ユーザー</td></tr>
+<tr><td>LDAPユーザー</td><td>Active Directory等のユーザーを連携して利用</td><td>一般の利用者・管理者（推奨）</td></tr>
+<tr><td>コンポーネント・アプリ用ユーザー</td><td>CPM・PSM・CPなどがVaultへ接続するためのユーザー</td><td>人は使わない。自動で管理される</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">人の利用者は原則「LDAPユーザー＋MFA」</span>
+<p>Vault内部ユーザーを大量に作ると、入退社・異動のたびに手作業が発生し、消し忘れが起きます。人はADなど既存のID基盤と連携し、Vault内部ユーザーは緊急用などに限定しましょう。</p>
+</div>
+
+<h2>2. 認証方式</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>方式</th><th>概要</th><th>補足</th></tr></thead>
+<tbody>
+<tr><td>CyberArk（Vault）認証</td><td>Vaultに保存されたパスワードで認証</td><td>緊急用ユーザー等</td></tr>
+<tr><td>LDAP認証</td><td>ADのID・パスワードで認証</td><td>単独ではMFAにならない</td></tr>
+<tr><td>RADIUS</td><td>RADIUSサーバ経由でワンタイムパスワード等と組み合わせ</td><td>MFA製品との連携でよく使われる</td></tr>
+<tr><td>PKI（証明書）</td><td>クライアント証明書・スマートカード</td><td>高セキュリティ環境</td></tr>
+<tr><td><strong>SAML</strong></td><td>IdP（Identity・Entra ID・Okta等）で認証し、その結果でログイン</td><td>SSO＋IdP側のMFAを活用できる。現在の主流</td></tr>
+</tbody></table></div>
+<div class="callout analogy"><span class="ttl">MFAは「鍵＋顔認証」の二重ロック</span>
+<p>パスワードだけの認証は「鍵だけの玄関」。鍵（パスワード）が盗まれたら誰でも入れます。MFAは「鍵＋顔認証（スマホ承認・生体認証）」です。金庫室の入口であるCyberArkには、<strong>必ずMFAを掛けます</strong>。</p>
+</div>
+
+<h2>3. LDAP連携（Directory Mapping）</h2>
+<p>LDAP連携では、ADを「ユーザーの名簿」として使います。<strong>Directory Mapping</strong>（ディレクトリマッピング）の設定により、「ADのこのグループに所属する人は、Vaultでこういう権限・属性を持つ」というルールを定義します。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>ADグループ（例）</th><th>CyberArkでの扱い</th></tr></thead>
+<tbody>
+<tr><td><code>GG_PAM_ADMINS</code></td><td>Vault Adminsにマッピング（管理機能）</td></tr>
+<tr><td><code>GG_PAM_AUDITORS</code></td><td>Auditorsにマッピング（監査）</td></tr>
+<tr><td><code>GG_PAM_INF_USERS</code> など</td><td>Safeメンバーとして直接登録（第6章）</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">ADグループ運用のコツ</span>
+<p>CyberArk用のADグループは命名規則（例：<code>GG_PAM_</code>で始める）を決め、<strong>グループのメンバー変更も申請・承認制</strong>にします。ADグループを変更できる人は実質的にCyberArkの権限を変更できるため、ADグループの管理権限自体が重要な統制ポイントになります。</p>
+</div>
+
+<h2>4. Privilege Cloudでの認証（Identity）</h2>
+<p>Privilege Cloudでは、ISPSSの認証基盤である<strong>Identity</strong>（CyberArk Identity Security Platformのユーザー管理・認証機能）が入口になります。</p>
+<ul>
+<li>Identityで直接ユーザー管理・MFAを行う方法</li>
+<li>社内IdP（Entra ID・Okta等）とSAMLで連携し、社内のSSOとMFAを使う方法</li>
+<li>オンプレADのユーザー・グループを、Identity Connector経由で利用する方法</li>
+</ul>
+<p>どの方式を選ぶかは、既存のID基盤・MFA製品・社内ポリシーで決まります。</p>
+
+<h2>5. SAML認証の流れ</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図11-1：SAMLによるシングルサインオン（概念図）</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":290,
+"nodes":[
+{"id":"u","x":10,"y":115,"w":150,"h":60,"label":"高橋さん","sub":"ブラウザ","kind":"user","s":[1,2,3,4,5]},
+{"id":"sp","x":320,"y":20,"w":180,"h":60,"label":"CyberArk","sub":"PVWA／Privilege Cloud\n（SP：サービス提供側）","kind":"comp","s":[1,2,5]},
+{"id":"idp","x":320,"y":210,"w":180,"h":60,"label":"IdP","sub":"Identity／Entra ID 等","kind":"cloud","s":[2,3,4]},
+{"id":"mfa","x":640,"y":210,"w":150,"h":60,"label":"スマホ","sub":"MFA承認","kind":"user","s":[3]}],
+"edges":[
+{"from":"u","to":"sp","label":"①アクセス","curve":-26,"s":[1]},
+{"from":"sp","to":"idp","label":"②IdPへ転送","s":[2]},
+{"from":"idp","to":"mfa","label":"③ID・PW＋MFA","s":[3]},
+{"from":"idp","to":"u","label":"④署名付き認証結果","s":[4]},
+{"from":"u","to":"sp","label":"⑤結果を提示→ログイン","curve":26,"ly":18,"lx":30,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="CyberArkにアクセス">高橋さんがCyberArkのログイン画面にアクセスします。</li>
+<li data-label="IdPへ転送">CyberArkは自分では認証せず、ブラウザを社内のIdPへ転送します。</li>
+<li data-label="IdPで認証＋MFA">IdPでID・パスワードを入力し、スマホのMFAで承認します。社内の他システムに既にログイン済みなら、ここは省略されることもあります（SSO）。</li>
+<li data-label="署名付き結果を受け取る">IdPは「この人は高橋葵さんで、認証済みです」という<strong>電子署名付きの証明（SAMLアサーション）</strong>をブラウザに渡します。</li>
+<li data-label="ログイン完了">ブラウザがその証明をCyberArkへ提示し、CyberArkは署名を検証してログインを許可します。<strong>CyberArk側は利用者のADパスワードを受け取りません。</strong></li>
+</ol>
+</figure>
+
+<h2>6. 設計の勘所</h2>
+<ul>
+<li><strong>MFAは必須</strong>：特にVault管理者・Safe管理者・監査担当など権限の強い人から優先します。</li>
+<li><strong>IdPが止まったときの手段</strong>：IdP障害でCyberArkに誰も入れないと、障害対応に必要な特権も使えません。<mark>緊急用の認証経路（ブレークグラス）</mark>を設計・文書化しておきます。</li>
+<li><strong>退職・異動の自動反映</strong>：IdP・ADの無効化でCyberArkも使えなくなることを確認します。</li>
+<li><strong>人の特権IDとログインIDの分離</strong>：普段のメール用IDとは別に、管理者用ID（例：<code>adm-a.takahashi</code>）を使う組織もあります。</li>
+</ul>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>PVWAで認証方式（CyberArk・LDAP・RADIUS・SAML 等）を構成</li><li>LDAP連携はDirectory Mappingで定義</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>ログインの入口はISPSSの <strong>Identity</strong>（MFA・SSO、社内IdPとのSAML連携）</li><li>LDAP連携は <strong>Directory Map</strong> で定義（よく使う役割の既定マップあり）。LDAPS必須で、LDAPグループに属し有効なユーザーのみ連携される</li><li>Identityのロール（Privilege Cloud Administrators／Auditors／Safe Managers 等）は権限だけでなく<strong>消費するライセンス</strong>も決める</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：LDAP integration（Privilege Cloud）、ISPSS user roles、Set up LDAP integration（Self-Hosted）</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第11章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. SAML認証で、CyberArkがIdPから受け取るものは？</p>
+<ul class="rq-opts"><li>利用者のADパスワード</li><li>電子署名付きの認証結果（SAMLアサーション）</li><li>ターゲットのパスワード</li><li>録画ファイル</li></ul>
+<div class="rq-exp">CyberArkは署名付きの認証結果を検証するだけで、ADパスワードは受け取りません。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q2. ADのグループとVaultの権限・属性を結び付ける設定は？</p>
+<ul class="rq-opts"><li>Master Policy</li><li>Connection Component</li><li>Reconcile Account</li><li>Directory Mapping（LDAP連携）</li></ul>
+<div class="rq-exp">Directory Mappingで、ADグループに応じたVault上の扱いを定義します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. IdPと連携する際に必ず検討すべきことは？</p>
+<ul class="rq-opts"><li>IdP障害時でもCyberArkに入れる緊急用の認証経路</li><li>録画の解像度</li><li>Safe名の長さ</li><li>CPMの変更間隔</li></ul>
+<div class="rq-exp">IdPに依存しきると、IdP障害時に特権が一切使えなくなります。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. 人の利用者アカウントの推奨的な管理方法は？</p>
+<ul class="rq-opts"><li>Vault内部ユーザーを人数分作る</li><li>全員でAdministratorを共有する</li><li>AD等のID基盤と連携し、MFAを掛ける</li><li>Masterユーザーを配布する</li></ul>
+<div class="rq-exp">既存のID基盤と連携することで入退社・異動が自動で反映され、MFAで本人確認を強化できます。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

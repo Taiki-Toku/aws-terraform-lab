@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch16.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第16章 ハンズオン演習</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 16｜ハンズオン</div>
+  <h1>ハンズオン演習（検証環境）</h1>
+  <p class="lead">読んで理解したことを、実際に手を動かして確かめます。登録 → 接続 → 録画確認 → 承認 → 障害を起こして直す、までを一人でできるようになるのがこの章の目標です。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">演習のルール → 検証環境の構成 → 演習1〜8（画面ツアー、Safe作成、アカウント登録、PSM接続と録画、二重承認、パスワード不一致からの復旧、CPMエラーの切り分け、REST API）→ 後片付け</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Safe作成からアカウント登録・検証・変更までを手順書なしで実施できる</li>
+    <li>PSM経由で接続し、録画・操作ログから自分の操作を探し出せる</li>
+    <li>パスワード不一致やCPMエラーを意図的に起こし、原因を特定して復旧できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 6〜8時間（2日に分けて実施推奨）</span><span class="chip">前提：第1〜15章</span><span class="chip warn">検証環境必須</span></div>
+</div>
+
+<div class="callout danger"><span class="ttl">演習のルール（必ず守る）</span>
+<ul>
+<li><strong>本番環境では絶対に実施しない。</strong>演習はすべて検証環境（<code>lab.hikari.example</code>）で行う</li>
+<li>演習で意図的にパスワードを不一致にするのは、<strong>演習用に用意したアカウントだけ</strong>（ドメイン管理者などは使わない）</li>
+<li>講師（山本さん）の指示なく、Master Policy・既存プラットフォーム・既存Safeを変更しない</li>
+<li>終わったら必ず「後片付け」を行い、講師に完了報告する</li>
+</ul>
+</div>
+
+<div class="callout verify"><span class="ttl">画面名・メニュー名について</span><p>PVWA（Self-Hosted）とPrivilege Cloudでは画面構成が異なり、バージョンによってもメニュー名が変わります。本章では操作を「何をするか」で書いています。迷ったら講師に確認するか、公式ドキュメントの該当バージョンを参照してください。</p></div>
+
+<h2>検証環境の構成（架空）</h2>
+<script class="dg" type="application/json">
+{"w":800,"h":300,"title":"ハンズオン検証環境","caption":"図16-1：ハンズオン用検証環境（すべて架空）",
+"zones":[{"x":190,"y":10,"w":400,"h":280,"label":"検証用PAM（lab.hikari.example）"}],
+"nodes":[
+{"id":"u","x":10,"y":120,"w":150,"h":60,"label":"受講者PC","sub":"ブラウザ／RDP／SSH","kind":"user"},
+{"id":"pvwa","x":210,"y":45,"w":170,"h":55,"label":"PVWA","sub":"lab-pvwa01 10.99.0.21","kind":"comp"},
+{"id":"psm","x":210,"y":125,"w":170,"h":55,"label":"PSM / PSM for SSH","sub":"lab-psm01 10.99.0.41","kind":"comp"},
+{"id":"cpm","x":210,"y":210,"w":170,"h":55,"label":"CPM","sub":"lab-cpm01 10.99.0.31","kind":"comp"},
+{"id":"v","x":410,"y":120,"w":160,"h":65,"label":"Vault","sub":"lab-vault01\n10.99.0.11","kind":"vault"},
+{"id":"l","x":630,"y":60,"w":160,"h":60,"label":"lab-lnx01","sub":"Linux 10.99.1.11","kind":"target"},
+{"id":"w","x":630,"y":180,"w":160,"h":60,"label":"lab-win01","sub":"Windows 10.99.1.21","kind":"target"}],
+"edges":[
+{"from":"u","to":"pvwa","label":"443"},{"from":"u","to":"psm","label":"3389/22"},
+{"from":"pvwa","to":"v"},{"from":"psm","to":"v"},{"from":"cpm","to":"v"},
+{"from":"v","to":"l","dashed":true,"label":"CPM・PSMから"},{"from":"v","to":"w","dashed":true}]}
+</script>
+<div class="table-wrap"><table>
+<thead><tr><th>演習用アカウント（例）</th><th>ターゲット</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td><code>labroot-XX</code>（XXは受講者番号）</td><td>lab-lnx01</td><td>登録・接続・不一致演習用（sudo可能なローカルユーザー）</td></tr>
+<tr><td><code>labops-XX</code></td><td>lab-lnx01</td><td>Logon Account用の一般ユーザー</td></tr>
+<tr><td><code>labadmin-XX</code></td><td>lab-win01</td><td>Windowsローカル管理者の演習用</td></tr>
+<tr><td><code>svc_lab_reconcile</code></td><td>lab-lnx01 / lab-win01</td><td>調整（Reconcile）用。講師が事前に登録・管理</td></tr>
+</tbody></table></div>
+<p class="small muted">講師は演習前に、受講者ごとの演習用アカウント・ADグループ（例：<code>GG_LAB_USERS_XX</code>）と初期パスワードを用意し、紙または別経路で渡してください。</p>
+
+<!-- 演習1 -->
+<section class="lab">
+<h3>演習1：画面ツアー（30分）</h3>
+<p><strong>目的：</strong>どこに何があるかを把握する（第3章）。</p>
+<ul class="checklist" data-key="lab1">
+<li>検証環境のPVWA（<code>https://lab-pvwa01.lab.hikari.example/PasswordVault</code>）に自分のIDとMFAでログインした</li>
+<li>アカウント一覧・Safe一覧・録画（監視）画面・申請（承認）画面の場所を確認した</li>
+<li>管理者でないと見えないメニューがあることを確認した（権限で画面が変わる）</li>
+<li>自分のログイン操作が監査ログ（アクティビティ）に記録されていることを確認した</li>
+</ul>
+</section>
+
+<!-- 演習2 -->
+<section class="lab">
+<h3>演習2：Safeの作成とメンバー追加（40分）</h3>
+<p><strong>目的：</strong>命名規則に沿ったSafeを作り、役割に合った権限を付ける（第6章）。※Safe作成権限は講師が一時的に付与します。</p>
+<ul class="checklist" data-key="lab2">
+<li>命名規則に沿ってSafe <code>LAB-STG-INF-LNX-XX</code> を作成し、説明欄にオーナー（自分の名前）を記入した</li>
+<li>担当CPMとして <code>lab-cpm01</code> が割り当てられていることを確認した</li>
+<li>自分の演習用ADグループ <code>GG_LAB_USERS_XX</code> に <strong>List＋Use</strong> だけを付与した</li>
+<li>講師（承認者役）を <strong>List＋Authorize account requests</strong> で追加した</li>
+<li>メンバー追加の操作が監査ログに残っていることを確認した</li>
+</ul>
+<div class="callout tip"><span class="ttl">振り返り</span><p>自分自身に Retrieve や Manage Safe members を付けたくなったら、それは職務分掌（SoD）違反のサインです。講師に理由を説明できるか考えましょう。</p></div>
+</section>
+
+<!-- 演習3 -->
+<section class="lab">
+<h3>演習3：Linuxアカウントの登録・検証・変更（60分）</h3>
+<p><strong>目的：</strong>Logon Account付きでrootに相当するアカウントを登録し、CPMで管理下に入れる（第7・8章）。</p>
+<ul class="checklist" data-key="lab3">
+<li><code>labops-XX</code>（Logon Account）を先に登録した</li>
+<li><code>labroot-XX</code> を、講師指定のLinux用プラットフォーム（例：<code>LAB-Unix-SSH</code>）とSafe <code>LAB-STG-INF-LNX-XX</code> を指定して登録した</li>
+<li><code>labroot-XX</code> に Logon Account（<code>labops-XX</code>）と Reconcile Account（<code>svc_lab_reconcile</code>）を関連付けた</li>
+<li>Verify（検証）を実行して成功した</li>
+<li>Change（変更）を実行し、成功した。旧パスワードで直接SSHできなくなったことを講師と確認した</li>
+<li>アカウントの履歴（バージョン）に変更が記録されていることを確認した</li>
+</ul>
+</section>
+
+<!-- 演習4 -->
+<section class="lab">
+<h3>演習4：PSM経由の接続と録画の確認（45分）</h3>
+<p><strong>目的：</strong>パスワードを見ずに接続し、自分の操作を録画から探す（第10章）。</p>
+<ul class="checklist" data-key="lab4">
+<li>PVWAから <code>labroot-XX</code> で「Connect」し、パスワードを見ずに lab-lnx01 にログインできた</li>
+<li>セッション内で <code>hostname</code>、<code>id</code>、<code>ls /etc</code> を実行してから切断した</li>
+<li>SSHクライアントから PSM for SSH 経由でも接続できた（書式は講師が配布する手順に従う）</li>
+<li>録画一覧から自分のセッションを探し、再生できた</li>
+<li>操作ログ（コマンド）で <code>id</code> を検索し、録画の該当箇所へジャンプできた</li>
+</ul>
+</section>
+
+<!-- 演習5 -->
+<section class="lab">
+<h3>演習5：二重承認ワークフロー（2人1組・40分）</h3>
+<p><strong>目的：</strong>申請者・承認者の両方を体験する（第9章）。講師が演習用プラットフォームに二重承認の例外を設定済みとします。</p>
+<ul class="checklist" data-key="lab5">
+<li>申請者として、理由（例：<code>LAB-CHG-0001</code>）と時間帯を入力して利用申請した</li>
+<li>承認前は接続できないことを確認した</li>
+<li>承認者役として、相手の申請内容を確認して承認（または理由を付けて却下）した</li>
+<li>承認後に接続でき、申請・承認・接続が監査ログで1本の線としてつながっていることを確認した</li>
+</ul>
+</section>
+
+<!-- 演習6 -->
+<section class="lab">
+<h3>演習6：パスワード不一致を起こして復旧する（障害演習・45分）</h3>
+<p><strong>目的：</strong>Verify失敗 → 原因特定 → Reconcile の流れを体で覚える（第8章）。</p>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図16-2：障害演習の流れ</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":250,
+"nodes":[
+{"id":"ins","x":10,"y":95,"w":140,"h":60,"label":"講師","sub":"直接PWを変更","kind":"threat","s":[1]},
+{"id":"t","x":210,"y":95,"w":150,"h":60,"label":"lab-lnx01","sub":"labroot-XX","kind":"target","s":[1,2,4]},
+{"id":"cpm","x":420,"y":95,"w":150,"h":60,"label":"CPM","kind":"comp","s":[2,4]},
+{"id":"me","x":630,"y":10,"w":160,"h":60,"label":"受講者","sub":"調査・判断","kind":"user","s":[3,4,5]},
+{"id":"v","x":630,"y":180,"w":160,"h":60,"label":"Vault","sub":"状態・ログ","kind":"vault","s":[2,3,5]}],
+"edges":[
+{"from":"ins","to":"t","label":"①直接変更","s":[1]},
+{"from":"cpm","to":"t","label":"②Verify失敗","curve":-40,"s":[2]},
+{"from":"cpm","to":"v","label":"②不一致を記録","s":[2]},
+{"from":"me","to":"v","label":"③エラー確認","lx":-50,"s":[3]},
+{"from":"me","to":"cpm","label":"④Reconcile実行","s":[4]},
+{"from":"cpm","to":"t","label":"④強制リセット","curve":40,"ly":16,"s":[4]},
+{"from":"me","to":"v","label":"⑤Verify成功・報告","off":24,"lx":60,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="不一致を作る">
+講師が lab-lnx01 上で <code>labroot-XX</code> のパスワードを直接変更します（受講者には知らせません）。現実の「誰かがCyberArkを通さず変えた」「バックアップから戻した」状況の再現です。</li>
+<li data-label="Verify失敗">受講者が Verify を実行（または定期検証を待つ）と、認証失敗で不一致として記録されます。</li>
+<li data-label="エラー確認">画面のエラー内容から「接続できない」のか「認証に失敗した」のかを読み取り、他の受講者のアカウントでも起きているか（影響範囲）を確認します。</li>
+<li data-label="Reconcile">ロックされていないことを確認してから Reconcile を実行します。CPMが Reconcile Account で強制リセットします。</li>
+<li data-label="確認と報告">Verify が成功することを確認し、第15章の型（事象・原因・対応・再発防止）で講師に口頭報告します。</li>
+</ol>
+</figure>
+<ul class="checklist" data-key="lab6">
+<li>Verify失敗のエラーメッセージを読み、「認証失敗」であることを特定した</li>
+<li>影響範囲（自分のアカウントだけか）を確認した</li>
+<li>Reconcileで同期を回復し、Verifyが成功した</li>
+<li>事象・原因・対応・再発防止の4点で講師に報告した</li>
+</ul>
+</section>
+
+<!-- 演習7 -->
+<section class="lab">
+<h3>演習7：CPMエラーの切り分け（45分）</h3>
+<p><strong>目的：</strong>エラーの「段階」を見極める（第8章）。講師が次のいずれかの障害を仕込みます。受講者は原因を当ててください。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>講師が仕込む障害（例）</th><th>受講者が見つけるべき手がかり</th></tr></thead>
+<tbody>
+<tr><td>A：lab-lnx01 側でSSHを一時停止</td><td>接続段階のエラー（タイムアウト・接続拒否）</td></tr>
+<tr><td>B：Logon Account の関連付けを外す</td><td>ログオン段階のエラー（rootへの直接ログイン拒否）</td></tr>
+<tr><td>C：演習用プラットフォームの使用禁止文字から、ターゲットが受け付けない記号を外す</td><td>変更段階のエラー（ターゲットが新パスワードを拒否）</td></tr>
+</tbody></table></div>
+<ul class="checklist" data-key="lab7">
+<li>PVWAのエラーメッセージから、失敗した段階（接続／ログオン／変更／検証）を特定した</li>
+<li>CPMサーバのログ（講師が閲覧方法を案内）で裏付けを取った</li>
+<li>原因を修正（または講師に修正依頼）し、再実行で成功した</li>
+</ul>
+</section>
+
+<!-- 演習8 -->
+<section class="lab">
+<h3>演習8（発展）：REST APIで自分のアカウントを取得する（30分）</h3>
+<p><strong>目的：</strong>自動化の入口を体験する（第15章）。エンドポイント・認証方式はバージョンの公式APIリファレンスで確認してください。</p>
+<pre><code># PowerShell の例（検証環境・概念例）
+$base = "https://lab-pvwa01.lab.hikari.example/PasswordVault"
+$cred = Get-Credential   # 自分の検証用ID（パスワードをスクリプトに書かない）
+$body = @{ username = $cred.UserName; password = $cred.GetNetworkCredential().Password } | ConvertTo-Json
+$token = Invoke-RestMethod -Method Post -Uri "$base/API/auth/LDAP/Logon" -Body $body -ContentType "application/json"
+Invoke-RestMethod -Method Get -Uri "$base/API/Accounts?search=labroot" -Headers @{ Authorization = $token } |
+  Select-Object -ExpandProperty value | Select-Object name, address, userName, safeName</code></pre>
+<ul class="checklist" data-key="lab8">
+<li>APIで自分のSafeにあるアカウントだけが返ってくる（権限がAPIにも効いている）ことを確認した</li>
+<li>APIによるログオン・取得が監査ログに記録されていることを確認した</li>
+<li>ログオフ（トークンの破棄）を行った</li>
+</ul>
+</section>
+
+<h2>後片付け</h2>
+<ul class="checklist" data-key="labclean">
+<li>演習で使ったセッションをすべて切断した</li>
+<li>講師の指示に従い、演習用アカウントを削除（または講師に引き渡し）した</li>
+<li>一時的に付与されたSafe作成権限などが外されたことを講師と確認した</li>
+<li>手元のメモ・スクリーンショットにパスワードが残っていないことを確認した</li>
+</ul>
+<p class="small muted">チェック状態はこのブラウザに保存され、<a href="../report.html">成績・学習記録</a>から講師へ提出できます。</p>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>本章の手順は Self-Hosted の検証環境（PVWA）を前提に記載</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Privilege Cloudの検証テナントで行う場合は、PVWAをPrivilege Cloudポータル（Identityでログイン）に読み替える</li><li>演習3・6・7のパスワード変更・検証・調整は、Secrets Rotation Service構成ではエージェント経由で実行され、結果はポータルで確認する</li><li>演習4はSIA（RDP・SSH）とPSMの両方で接続して違いを確かめるとよい</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Deploy Privilege Cloud Connector、Set up target access for privileged sessions</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第16章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. 障害演習で意図的にパスワード不一致を起こしてよいアカウントは？</p>
+<ul class="rq-opts"><li>本番のドメイン管理者</li><li>検証環境のReconcile Account</li><li>検証環境に用意された自分の演習用アカウント</li><li>講師のPVWAログインアカウント</li></ul>
+<div class="rq-exp">演習は検証環境の、演習用に用意されたアカウントだけで行います。Reconcile Accountを壊すと調整自体ができなくなります。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. APIで取得できたアカウントが自分のSafeのものだけだった。理由として正しいものは？</p>
+<ul class="rq-opts"><li>APIにも画面と同じSafe権限が適用されるから</li><li>APIは常に1件しか返さないから</li><li>APIは管理者専用だから</li><li>検証環境にアカウントが1件しかないから</li></ul>
+<div class="rq-exp">APIは画面と同じ権限モデル（Safe権限）で動作し、操作は監査ログに残ります。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. 演習7で「rootへの直接ログインが拒否された」エラーが出た。最も疑わしい原因は？</p>
+<ul class="rq-opts"><li>SSHサービスの停止</li><li>Vaultの停止</li><li>使用禁止文字の設定</li><li>Logon Accountの関連付けが外れている</li></ul>
+<div class="rq-exp">ログオン段階のエラーです。rootへの直接SSHが禁止された環境では、Logon Accountが必要です。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

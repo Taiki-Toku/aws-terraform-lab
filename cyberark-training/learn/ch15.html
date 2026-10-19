@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch15.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第15章 設計思想・導入・運用の実践</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 15｜実践</div>
+  <h1>設計思想・導入・運用の実践</h1>
+  <p class="lead">ここまでの知識を「現場でどう使うか」にまとめます。CyberArkの構築思想、段階的な導入の進め方、日常運用、障害対応、自動化、バージョン管理まで、実務の全体像をつかみます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">8つの設計原則 → 段階導入（ロードマップ）→ オンボーディングの進め方（フロー）→ 日常運用チェック → 障害対応の型 → 自動化（REST API）→ バージョンアップ → 新人の最初の90日</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>CyberArk設計の基本原則を、理由とともに説明できる</li>
+    <li>リスクの高いものから段階的に導入する進め方を説明できる</li>
+    <li>日常運用でチェックすべき項目と、障害対応の基本手順を説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 90分</span><span class="chip">前提：第1〜14章</span><span class="chip warn">重点章</span></div>
+</div>
+
+<h2>1. CyberArk設計の8つの原則</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>原則</th><th>具体的には</th><th>関連章</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>金庫は最も堅牢に</strong></td><td>Vaultは専用・堅牢化・ドメイン非参加。Masterの鍵はオフライン保管</td><td>4</td></tr>
+<tr><td>2</td><td><strong>見せずに使わせる</strong></td><td>Retrieveより「Use＋PSM」。パスワードを知る人を増やさない</td><td>6, 10</td></tr>
+<tr><td>3</td><td><strong>人ではなく仕組みで変える</strong></td><td>パスワード変更はCPMで自動化。手作業の変更をなくす</td><td>8</td></tr>
+<tr><td>4</td><td><strong>最小権限と職務分掌</strong></td><td>必要な人に必要な権限だけ。管理する人と使う人を分ける</td><td>6, 9</td></tr>
+<tr><td>5</td><td><strong>経路を一本化する</strong></td><td>FW等で、ターゲットの管理ポート（RDP/SSH）へはPSM等からのみ接続可能にする。抜け道があると統制も検知も効かない</td><td>10, 12</td></tr>
+<tr><td>6</td><td><strong>止まらない・止まっても困らない</strong></td><td>冗長化・DR・バックアップ、そして全停止時の緊急手順（ブレークグラス）</td><td>4, 11</td></tr>
+<tr><td>7</td><td><strong>常設特権を減らす</strong></td><td>なくせる特権はZSP/JITでなくし、残るものはVaultで守る</td><td>14</td></tr>
+<tr><td>8</td><td><strong>標準化と自動化</strong></td><td>命名規則・プラットフォーム・登録手順を標準化し、APIで自動化する</td><td>6, 7, 本章</td></tr>
+</tbody></table></div>
+<div class="callout analogy"><span class="ttl">原則5「経路の一本化」は空港の保安検査</span>
+<p>空港では、搭乗口へ行くには必ず保安検査場を通ります。保安検査場がどれだけ厳格でも、横に「検査なしで通れる通用口」があれば意味がありません。特権アクセスも同じで、<strong>PSMを通らずにサーバへ直接RDP/SSHできる経路が残っていると、統制は抜け道だらけ</strong>になります。</p>
+</div>
+
+<h2>2. 段階導入（ロードマップ）</h2>
+<p>CyberArkは、リスクの高いものから順に導入していく段階的なアプローチ（CyberArk Blueprint for Identity Security Success など）を公開しています。考え方の例を示します。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>段階</th><th>目的</th><th>主な対象・施策（例）</th></tr></thead>
+<tbody>
+<tr><td>段階1</td><td><strong>資格情報の窃取を防ぐ</strong></td><td>ドメイン管理者などの最重要アカウントをVaultに格納・自動変更・PSM経由に限定。緊急用アカウントの統制</td></tr>
+<tr><td>段階2</td><td><strong>横展開・権限昇格を止める</strong></td><td>サーバのローカル管理者、DB・ネットワーク機器の管理者、ワークステーションの権限（EPM）へ拡大</td></tr>
+<tr><td>段階3</td><td><strong>特権の悪用を最小化する</strong></td><td>アプリのシークレット、クラウド、ZSP/JITの適用、脅威検知と自動対応の高度化</td></tr>
+</tbody></table></div>
+<div class="callout verify"><span class="ttl">参考</span><p>公式ドキュメントのBlueprint（docs.cyberark.com の「CyberArk Blueprint」）では、侵入後の攻撃に対する3つの原則として「アイデンティティ侵害（資格情報窃取）の防止」「横方向・縦方向の移動の阻止」「権限昇格と悪用の制限」を挙げており、上表はこれを新人向けに要約したものです（2026-10-19確認）。各原則に対応する具体的な統制（Vault格納・ローテーション・分離、JIT・一意のローカル資格情報、最小権限・ZSP・脅威検知など）は同ドキュメントを参照してください。</p></div>
+<div class="callout tip"><span class="ttl">最初の成果（クイックウィン）を早く出す</span>
+<p>導入プロジェクトは長期化しがちです。「ドメイン管理者を全部Vaultに入れ、パスワードを自動変更した」のような<strong>経営層にも伝わる最初の成果</strong>を早めに作ると、その後の展開がスムーズになります。</p>
+</div>
+
+<h2>3. オンボーディングの進め方</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図15-1：オンボーディング（管理下への取り込み）の1サイクル</span></div>
+<script class="dg" type="application/json">
+{"w":820,"h":250,
+"nodes":[
+{"id":"a","x":10,"y":90,"w":120,"h":70,"label":"①発見","sub":"Discovery\n棚卸し","kind":"comp","s":[1]},
+{"id":"b","x":148,"y":90,"w":120,"h":70,"label":"②分類","sub":"重要度・所有者\n依存先調査","kind":"comp","s":[2]},
+{"id":"c","x":286,"y":90,"w":120,"h":70,"label":"③設計","sub":"Safe・PF\nポリシー","kind":"vault","s":[3]},
+{"id":"d","x":424,"y":90,"w":120,"h":70,"label":"④登録","sub":"一括／API\n検証","kind":"vault","s":[4]},
+{"id":"e","x":562,"y":90,"w":120,"h":70,"label":"⑤変更・強制","sub":"初回変更\n経路一本化","kind":"target","s":[5]},
+{"id":"f","x":700,"y":90,"w":110,"h":70,"label":"⑥定着","sub":"周知・監視\n棚卸し","kind":"user","s":[6]}],
+"edges":[
+{"from":"a","to":"b","s":[2]},{"from":"b","to":"c","s":[3]},{"from":"c","to":"d","s":[4]},{"from":"d","to":"e","s":[5]},{"from":"e","to":"f","s":[6]},
+{"from":"f","to":"a","dashed":true,"curve":-170,"ly":18,"label":"次の対象へ（ウェーブ）","s":[6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="発見">Accounts Discoveryや評価ツールで、対象範囲のサーバ・DB・機器にある特権アカウントを洗い出します。<strong>「知らない特権アカウント」が必ず見つかります。</strong></li>
+<li data-label="分類">各アカウントの重要度・所有者（どのチームか）・使用者・依存先（サービスやタスクでの使用）を調べます。依存先の調査漏れは、パスワード変更時の障害に直結します。</li>
+<li data-label="設計">Safe（第6章）、プラットフォーム（第7章）、ポリシー（第9章）を決めます。既存の標準に当てはまらないものは例外として記録します。</li>
+<li data-label="登録">一括登録やAPIで登録し、CPMの検証で接続情報が正しいかを確かめます。エラーはこの段階で潰します。</li>
+<li data-label="変更・強制">初回のパスワード変更で旧パスワードを無効化し、FW等で直接接続の経路を閉じて「CyberArk経由」を強制します。関係者への事前周知が必須です。</li>
+<li data-label="定着">利用者への説明会・手順書、CPMエラーの監視、定期的な棚卸しで定着させ、次の対象範囲（次のウェーブ）へ進みます。</li>
+</ol>
+</figure>
+
+<h2>4. 日常運用チェック</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>頻度</th><th>チェック項目</th></tr></thead>
+<tbody>
+<tr><td>毎日</td><td>コンポーネントの稼働状態（画面のシステムヘルス）、CPMの変更・検証エラー、PTAの高リスクアラート、バックアップ・DR複製の結果</td></tr>
+<tr><td>毎週</td><td>エラーが続くアカウントの原因対応、未処理の申請、録画保存先・ディスク容量</td></tr>
+<tr><td>毎月</td><td>新規サーバの登録漏れ（Discovery結果との差分）、ライセンス使用状況、証明書の有効期限、セキュリティパッチ情報</td></tr>
+<tr><td>四半期</td><td>Safe権限・ADグループメンバーのレビュー、Master Policy・例外の見直し、緊急手順の確認</td></tr>
+<tr><td>年次</td><td>DR切替訓練、Masterユーザー・リカバリキーの保管確認、バージョンアップ計画</td></tr>
+</tbody></table></div>
+
+<h2>5. 障害対応の型</h2>
+<div class="point-box">
+  <div class="big">🔎</div>
+  <div><p class="one">①影響範囲（1人？全員？）→ ②どの矢印か（第3章の図）→ ③最近の変更 → ④ログ → ⑤ナレッジ検索 → ⑥サポートへエスカレーション</p>
+  <p class="small muted">「全員が使えない」なら共通部分（Vault・PSMサービス・証明書・内部アカウント・ネットワーク）、「1アカウントだけ」ならそのアカウントの設定・ターゲットを疑います。</p></div>
+</div>
+<div class="callout tip"><span class="ttl">サポートに問い合わせるときに揃えるもの</span>
+<ul>
+<li>製品・バージョン（Self-Hosted／Privilege Cloud、コンポーネントのバージョン）</li>
+<li>発生日時、影響範囲、再現手順、エラーメッセージ（画面キャプチャ）</li>
+<li>関連コンポーネントのログ（パスワード等の機密が含まれていないか確認してから提出）</li>
+<li>直前に行った変更</li>
+</ul>
+</div>
+
+<h2>6. 自動化（REST API）</h2>
+<p>PVWA（Privilege CloudではそのAPI）はREST APIを提供しており、Safe作成・アカウント登録・権限付与などを自動化できます。サーバ構築の自動化（IaC）と連動して「構築したらすぐCyberArkに登録」を実現できます。</p>
+<pre><code># 例：Self-Hosted PVWA の REST API（概念例。実際のエンドポイント・認証方式はバージョンの公式APIリファレンスで確認）
+# 1) ログオン（トークン取得）
+POST https://pam.hikari.example/PasswordVault/API/auth/CyberArk/Logon
+# 2) アカウント登録
+POST https://pam.hikari.example/PasswordVault/API/Accounts
+{
+  "safeName": "HK-PRD-INF-LNX-ROOT",
+  "platformId": "HK-Unix-SSH-Root",
+  "address": "hk-web03.hikari.example",
+  "userName": "root",
+  "secretType": "password",
+  "secret": "（初期パスワード）"
+}</code></pre>
+<div class="callout danger"><span class="ttl">自動化用の資格情報こそ守る</span>
+<p>API用のユーザーは強い権限を持ちがちです。権限は必要最小限にし、その資格情報自体もCyberArk（CP/CCP等）から取得するようにします。PowerShell向けのコミュニティモジュール（psPAS）や、Ansibleの公式コレクションなども活用されています。</p>
+</div>
+
+<h2>7. バージョンアップとサポート</h2>
+<ul>
+<li><strong>Self-Hosted</strong>：サポート期間の区分（長期サポートのLTS、標準のSTS。LTSと明記されていない版はSTS）があります。公式のEnd of Life Policy（2026-10-19確認）では次のとおりです。
+<div class="table-wrap"><table><thead><tr><th>バージョン</th><th>リリース</th><th>開発終了（修正提供の終了）</th><th>サポート終了</th></tr></thead><tbody>
+<tr><td><strong>15.2（LTS）</strong></td><td>2026年7月</td><td>2029年7月</td><td>2029年7月（有償延長で2031年7月）</td></tr>
+<tr><td>15.0（STS）</td><td>2025年12月</td><td>2026年12月</td><td>2027年12月</td></tr>
+<tr><td>14.6（LTS）</td><td>2025年6月</td><td>2028年6月</td><td>2028年6月（有償延長で2030年6月）</td></tr>
+</tbody></table></div>
+<strong>アップグレードはLTSから次のLTS、または最新版へのみサポート</strong>され、LTSの修正を受けるには全コンポーネントを同じLTSにそろえる必要があります。15.2ではIdiraブランドへの名称変更も始まっています。</li>
+<li><strong>アップグレード順序</strong>：公式の互換性ページでは <strong>Vault → PVWA → CPM</strong> の順に上げ、その後に他のコンポーネント（PSM等）を上げるとされています（例：CPM 15.2 は Vault・PVWA が15.2以上であることが前提）。Primary-DR構成では<strong>Primary Vault → DR Vault → コンポーネント</strong>の順です。<mark>組み合わせによって条件が異なる</mark>ため、作業前に必ず該当バージョンのアップグレードガイドと互換性表を確認します。</li>
+<li><strong>Privilege Cloud</strong>：SaaS側は自動で更新されます。コネクタ側のコンポーネント（CPM・PSM等）は、更新の仕組みと対応バージョンを確認して計画的に更新します。</li>
+</ul>
+
+<h2>8. 新人の最初の90日（目安）</h2>
+<div class="grid">
+<div class="card"><h4>〜30日</h4><ul class="small"><li>本教材の修了</li><li>検証環境でアカウント登録・Connect・録画再生</li><li>日次チェックを先輩と一緒に実施</li></ul></div>
+<div class="card"><h4>〜60日</h4><ul class="small"><li>CPMエラーの一次切り分けを担当</li><li>Safe作成・権限付与の申請対応</li><li>公式トレーニング（Defender相当）の受講</li></ul></div>
+<div class="card"><h4>〜90日</h4><ul class="small"><li>小規模なオンボーディング（1ウェーブ）を担当</li><li>手順書の改善提案</li><li>ケーススタディ応用編を満点で再挑戦</li></ul></div>
+</div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>LTS／STSのライフサイクルに合わせて計画的にアップグレード（LTS→LTS または最新版のみ）</li><li>順序は Vault → PVWA → CPM → その他（Primary → DR → コンポーネント）</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>SaaS側（Vault・ポータル・SRS 等）は提供側が更新</li><li>コネクタ側は、Connector Management画面に新しいバージョンが表示されたら <strong>管理者が更新を実行</strong>（自動では更新されない）。CPM・PSMの更新は数分の停止を伴い、先にGPO堅牢化パッケージを更新する</li><li>コネクタはバックエンドのバージョンに関係なくいつでも更新できる</li><li>日常運用ではConnector Managementでコネクタの状態、送信元IP・証明書の期限などを確認</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：EOL Policy、Component compatibility、Upgrade the Privilege Cloud components using Connector Management</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第15章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. 「PSMを通らずにサーバへ直接RDPできる経路が残っている」ことの問題は？</p>
+<ul class="rq-opts"><li>Vaultの暗号化が無効になる</li><li>統制と検知を迂回する抜け道になり、記録も残らない</li><li>CPMのパスワード変更が速くなる</li><li>特に問題はない</li></ul>
+<div class="rq-exp">経路の一本化（原則5）ができていないと、PSMの録画・承認・PTAの検知がすべて迂回されます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q2. 段階導入で最初に取り組むべき対象として最も適切なのは？</p>
+<ul class="rq-opts"><li>社員PCのブラウザ設定</li><li>検証環境のテストアカウント</li><li>利用頻度の低いアプリのログ</li><li>ドメイン管理者などの最重要アカウント</li></ul>
+<div class="rq-exp">リスクが最も高い最重要アカウントから始めます。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. オンボーディングで「依存先の調査」を怠ると起こりやすい問題は？</p>
+<ul class="rq-opts"><li>パスワード変更後にサービスやタスクが起動しなくなる</li><li>録画が再生できなくなる</li><li>Masterユーザーがロックされる</li><li>Safe名が長くなる</li></ul>
+<div class="rq-exp">依存先（サービス・タスク・設定ファイル）が更新されず、業務障害につながります。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. Self-Hostedのバージョンアップ計画で必ず行うべきことは？</p>
+<ul class="rq-opts"><li>全コンポーネントを同時に再インストールする</li><li>Vaultをドメインに参加させる</li><li>公式のアップグレードガイドと互換性表で順序・互換性を確認する</li><li>バックアップを停止する</li></ul>
+<div class="rq-exp">順序や互換性はバージョンの組み合わせで異なるため、公式ガイドの確認が必須です。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

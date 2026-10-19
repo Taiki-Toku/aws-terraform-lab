@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="quiz.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>総まとめ練習問題</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">実践フェーズ｜総まとめ練習問題</div>
+  <h1>総まとめ練習問題</h1>
+  <p class="lead">全16章・100問以上の問題バンクから出題します。<strong>出題順も選択肢の順番も毎回ランダム</strong>です。選択肢の位置ではなく、内容で答えを覚えましょう。</p>
+  <h4>このフェーズの全体像</h4>
+  <p class="small">出題範囲と問題数を選ぶ → 1問ずつ解答（即時に正誤と解説）→ 結果と章別の正答率 → 間違えた問題だけ再挑戦</p>
+  <h4>このフェーズのゴール</h4>
+  <ul class="goal-list">
+    <li>全範囲ランダム出題で正答率80%以上を安定して取れる</li>
+    <li>章別の正答率から苦手な章を特定し、該当章を復習できる</li>
+  </ul>
+</div>
+
+<section id="setup" class="card">
+  <h3>出題設定</h3>
+  <div class="quiz-setup">
+    <label>問題数
+      <select id="q-count"><option value="10">10問</option><option value="20" selected>20問</option><option value="30">30問</option><option value="0">全問</option></select>
+    </label>
+    <label>出題範囲
+      <select id="q-range">
+        <option value="all">全章</option>
+        <option value="1-5">基礎・コア構成（第1〜5章）</option>
+        <option value="6-9">設計・設定（第6〜9章）</option>
+        <option value="10-12">利用・監視（第10〜12章）</option>
+        <option value="13-16">発展・実践・ハンズオン（第13〜16章）</option>
+      </select>
+    </label>
+    <label>難易度
+      <select id="q-level"><option value="all">すべて</option><option value="1">基礎のみ</option><option value="2">応用・シナリオのみ</option></select>
+    </label>
+    <p class="small muted" id="bank-info" style="margin:0"></p>
+    <div><button type="button" class="btn" id="start">ランダム出題で開始</button></div>
+    <p class="small muted" id="best" style="margin:0"></p>
+  </div>
+</section>
+
+<section id="play" hidden>
+  <div class="progress"><span id="bar" style="width:0%"></span></div>
+  <p class="small muted" id="pos"></p>
+  <div id="qbox"></div>
+</section>
+
+<section id="result" hidden></section>
+
+</div></main>
+<script src="assets/quiz-bank.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  var BANK = window.QUIZ_BANK || [];
+  var CH = window.CA_SITE.chapters;
+  var S = window.CA_STORE;
+  var MK = "ABCD";
+  var $ = function (id) { return document.getElementById(id); };
+  var state = null;
+
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  // 前回と同じ出題順にならないよう、同一順序なら引き直す
+  function shuffleAvoidRepeat(list, key) {
+    var prev = S.get(key, "");
+    var out, sig, tries = 0;
+    do { out = shuffle(list); sig = out.map(function (x) { return x.id; }).join(","); tries++; } while (sig === prev && list.length > 1 && tries < 10);
+    S.set(key, sig);
+    return out;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  BANK.forEach(function (q, i) { q.id = i; });
+
+  function pool() {
+    var r = $("q-range").value, lv = $("q-level").value, p = r === "all" ? [1, 99] : r.split("-").map(Number);
+    return BANK.filter(function (q) { return q.c >= p[0] && q.c <= p[1] && (lv === "all" || String(q.d) === lv); });
+  }
+  function info() {
+    var n = pool().length;
+    $("bank-info").textContent = "この範囲の問題数：" + n + "問（問題数がこれより多い設定の場合は全問を出題）";
+    var b = S.get("ca-quiz-best", null);
+    $("best").innerHTML = (b === null ? "" : "これまでの自己ベスト（全章・全難易度・20問以上）：" + b + "%　") + '<a href="report.html">学習記録・提出</a>';
+  }
+  $("q-range").addEventListener("change", info);
+  $("q-level").addEventListener("change", info);
+  info();
+
+  function start(list) {
+    var qs = shuffleAvoidRepeat(list, "ca-quiz-lastorder").map(function (q) {
+      var opts = q.a.map(function (t, i) { return { t: t, ok: i === 0 }; });
+      return { src: q, opts: shuffle(opts), picked: null };
+    });
+    state = { qs: qs, i: 0, full: $("q-range").value === "all" && $("q-level").value === "all" && qs.length >= 20 };
+    $("setup").hidden = true; $("result").hidden = true; $("play").hidden = false;
+    render();
+    $("play").scrollIntoView({ block: "start" });
+  }
+  $("start").addEventListener("click", function () {
+    var n = Number($("q-count").value), list = shuffle(pool());
+    start(n ? list.slice(0, n) : list);
+  });
+
+  function render() {
+    var cur = state.qs[state.i], q = cur.src, total = state.qs.length;
+    $("bar").style.width = Math.round(state.i / total * 100) + "%";
+    $("pos").textContent = "第 " + (state.i + 1) + " 問 / 全 " + total + " 問";
+    var h = '<div class="q-card"><div class="q-top"><span>出典：第' + q.c + "章 " + esc(CH[q.c - 1].t) + "</span><span>" + (q.d === 2 ? '<span class="chip warn">応用</span>' : '<span class="chip">基礎</span>') + " Q" + (state.i + 1) + '</span></div><div class="q-text">' + esc(q.q) + '</div><div class="q-opts">';
+    cur.opts.forEach(function (o, i) { h += '<button type="button" class="opt-btn" data-i="' + i + '"><span class="mk">' + MK[i] + "</span><span>" + esc(o.t) + "</span></button>"; });
+    h += '</div><div id="after"></div></div>';
+    $("qbox").innerHTML = h;
+    $("qbox").querySelectorAll(".opt-btn").forEach(function (b) {
+      b.addEventListener("click", function () { answer(Number(b.getAttribute("data-i"))); });
+    });
+  }
+
+  function answer(i) {
+    var cur = state.qs[state.i];
+    if (cur.picked !== null) return;
+    cur.picked = i;
+    var ok = cur.opts[i].ok;
+    $("qbox").querySelectorAll(".opt-btn").forEach(function (b, j) {
+      b.disabled = true;
+      if (cur.opts[j].ok) b.classList.add("correct");
+      else if (j === i) b.classList.add("wrong");
+    });
+    var last = state.i === state.qs.length - 1;
+    $("after").innerHTML = '<div class="q-exp"><span class="rq-result ' + (ok ? "ok" : "ng") + '">' + (ok ? "正解！" : "不正解") + "</span>" + esc(cur.src.e) +
+      ' <a href="learn/ch' + String(cur.src.c).padStart(2, "0") + '.html" target="_blank" rel="noopener">→ 第' + cur.src.c + "章を復習</a></div>" +
+      '<div class="btn-row"><button type="button" class="btn" id="next">' + (last ? "結果を見る" : "次の問題へ ▶") + "</button></div>";
+    $("next").addEventListener("click", function () {
+      if (last) return finish();
+      state.i++; render();
+      $("play").scrollIntoView({ block: "start" });
+    });
+    $("next").focus({ preventScroll: true });
+  }
+
+  function finish() {
+    var qs = state.qs, okN = 0, byCh = {};
+    qs.forEach(function (x) {
+      var ok = x.opts[x.picked].ok; if (ok) okN++;
+      var c = x.src.c; byCh[c] = byCh[c] || { n: 0, ok: 0 }; byCh[c].n++; if (ok) byCh[c].ok++;
+    });
+    var pct = Math.round(okN / qs.length * 100);
+    if (state.full) { var b = S.get("ca-quiz-best", 0); if (pct > b) S.set("ca-quiz-best", pct); }
+    var hist = S.get("ca-quiz-history", []);
+    var chs = {}; Object.keys(byCh).forEach(function (c) { chs[c] = [byCh[c].ok, byCh[c].n]; });
+    hist.push({ at: new Date().toISOString(), range: $("q-range").value, level: $("q-level").value, n: qs.length, ok: okN, pct: pct, byCh: chs,
+      wrong: qs.filter(function (x) { return !x.opts[x.picked].ok; }).map(function (x) { return x.src.q; }) });
+    S.set("ca-quiz-history", hist.slice(-50));
+    var msg = pct >= 90 ? "素晴らしい！実務に入る準備ができています。" : pct >= 80 ? "合格ライン到達！苦手な章を仕上げましょう。" : pct >= 60 ? "あと一歩。正答率の低い章を復習しましょう。" : "まずは各章の振り返り問題から復習しましょう。";
+    var h = '<div class="card"><div class="eyebrow">RESULT</div><div class="score-big">' + pct + '<span style="font-size:20px">%</span></div><p>' + okN + " / " + qs.length + " 問正解｜" + msg + "</p>";
+    h += "<h4>章別の正答率</h4>";
+    Object.keys(byCh).map(Number).sort(function (a, b) { return a - b; }).forEach(function (c) {
+      var r = byCh[c], p = Math.round(r.ok / r.n * 100);
+      h += '<div class="bar-row"><a href="learn/ch' + String(c).padStart(2, "0") + '.html">第' + c + "章 " + esc(CH[c - 1].t) + '</a><div class="progress"><span style="width:' + p + "%;background:" + (p >= 80 ? "var(--ok)" : p >= 50 ? "var(--warn)" : "var(--ng)") + '"></span></div><span class="small">' + r.ok + "/" + r.n + "</span></div>";
+    });
+    var wrong = qs.filter(function (x) { return !x.opts[x.picked].ok; });
+    h += '<div class="btn-row">' + (wrong.length ? '<button type="button" class="btn" id="retry">間違えた ' + wrong.length + " 問だけ再挑戦（順番は再シャッフル）</button>" : "") +
+      '<button type="button" class="btn ghost" id="again">新しくランダム出題</button></div></div>';
+    if (wrong.length) {
+      h += "<h3>間違えた問題の振り返り</h3>";
+      wrong.forEach(function (x) {
+        var right = x.opts.filter(function (o) { return o.ok; })[0].t;
+        h += '<div class="q-card"><div class="q-top"><span>第' + x.src.c + "章</span></div><div class=\"q-text\">" + esc(x.src.q) + '</div><p class="small"><span class="chip ng">あなたの回答</span>' + esc(x.opts[x.picked].t) + '<br><span class="chip ok">正解</span>' + esc(right) + '</p><div class="q-exp">' + esc(x.src.e) + "</div></div>";
+      });
+    }
+    $("result").innerHTML = h;
+    $("play").hidden = true; $("result").hidden = false;
+    $("result").scrollIntoView({ block: "start" });
+    var r = $("retry"); if (r) r.addEventListener("click", function () { start(wrong.map(function (x) { return x.src; })); });
+    $("again").addEventListener("click", function () { $("result").hidden = true; $("setup").hidden = false; info(); window.scrollTo(0, 0); });
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch04.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第4章 Digital Vaultとセキュリティ</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 04｜コア構成</div>
+  <h1>Digital Vaultとセキュリティ</h1>
+  <p class="lead">Vaultは「会社中のマスターキーが入った金庫」です。金庫そのものが破られたら終わりなので、Vaultは他のサーバとはまったく違う考え方で守られます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">Vaultの設計原則（専用・堅牢化・非ドメイン）→ 多層防御と暗号化 → 組み込みユーザーと緊急用Master → 可用性（DR・バックアップ）→ フェイルオーバーの流れ</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Vaultを「ドメインに参加させない」「他のソフトを入れない」理由を説明できる</li>
+    <li>Masterユーザー・Administratorユーザー・Auditors等の組み込みユーザー／グループの違いを説明できる</li>
+    <li>DR Vaultへの切り替えの流れと、コンポーネント側の動きを説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 70分</span><span class="chip">前提：第3章</span></div>
+</div>
+
+<h2>1. Vaultの設計原則</h2>
+<div class="callout analogy"><span class="ttl">銀行の地下金庫は「普通の部屋」ではない</span>
+<p>銀行の金庫室は、窓がなく、入口は1つだけ、壁は分厚く、清掃業者も自由には入れません。Vaultサーバも同じで、<strong>入口（通信ポート）は原則1つ</strong>、<strong>余計なもの（他のソフトウェア・ドメイン参加）は置かない</strong>のが基本です。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>原則</th><th>内容</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>専用サーバ</strong></td><td>Vaultサーバには他の役割（ファイルサーバ、監視エージェント等）を同居させない</td><td>他ソフトの脆弱性が攻撃の入口になる（攻撃対象領域の拡大）</td></tr>
+<tr><td><strong>ドメイン非参加</strong></td><td>Active Directoryドメインに参加させない（ワークグループ）</td><td>ドメインが侵害されても、ドメイン管理者がVaultサーバに入れないようにする</td></tr>
+<tr><td><strong>堅牢化（ハードニング）</strong></td><td>インストール時に不要なサービス停止・OS設定の強化が自動で行われる</td><td>攻撃に使える機能を最初から取り除く</td></tr>
+<tr><td><strong>専用ファイアウォール</strong></td><td>VaultがWindowsファイアウォールを制御し、既定ではVaultプロトコル（TCP 1858）のみ受け付ける</td><td>入口を1つに絞り、不要な通信を遮断する</td></tr>
+<tr><td><strong>物理的・論理的なアクセス制限</strong></td><td>コンソールアクセスできる人を最小限にし、仮想環境ならハイパーバイザ管理者も統制する</td><td>OSより下のレイヤ（物理・仮想基盤）からの攻撃を防ぐ</td></tr>
+</tbody></table></div>
+
+<div class="callout danger"><span class="ttl">よくある失敗</span>
+<ul>
+<li>「監視のために」Vaultサーバに汎用の監視エージェントやリモート管理ツールを入れてしまう</li>
+<li>「管理が楽だから」Vaultをドメインに参加させてしまう</li>
+<li>FWの例外を増やし、RDPを常時開放してしまう</li>
+</ul>
+<p>いずれも金庫室に裏口を作る行為です。必要な場合は公式のガイドに沿って、例外を最小限にします。公式GitHubの <code>CYBRHardeningCheck</code> のように、堅牢化状態（ドメイン非参加かどうか等）を確認するツールも提供されています。</p>
+</div>
+
+<h2>2. 多層防御と暗号化</h2>
+<p>Vaultは、1つの対策が破られても次の対策で守る<strong>多層防御</strong>の考え方で設計されています。</p>
+<div class="grid">
+<div class="card"><h4>🔒 通信の暗号化</h4><p class="small">コンポーネントとVault間の通信は暗号化される。</p></div>
+<div class="card"><h4>🧱 ファイアウォール</h4><p class="small">Vault自身がFWを管理し、許可された通信のみ受け付ける。</p></div>
+<div class="card"><h4>🪪 認証</h4><p class="small">パスワード、LDAP、RADIUS、PKI、SAMLなど多様な認証方式と多要素認証。</p></div>
+<div class="card"><h4>🗝 アクセス制御</h4><p class="small">Safe単位の細かい権限。Vault管理者であっても権限がなければ中身は見えない設計が可能。</p></div>
+<div class="card"><h4>📜 監査</h4><p class="small">すべての操作を改ざん困難な形で記録。</p></div>
+<div class="card"><h4>🔐 保存データの暗号化</h4><p class="small">格納データは階層的な鍵で暗号化して保存。</p></div>
+</div>
+
+<h3>階層的な暗号化（鍵の入れ子）</h3>
+<p>Vaultに保存されるファイルは、ファイルごとの鍵で暗号化され、その鍵はSafeの鍵で、Safeの鍵はVaultのServer Keyで暗号化されます。</p>
+<script class="dg" type="application/json">
+{"w":800,"h":150,"title":"Vaultの鍵階層","caption":"図4-1：鍵の入れ子構造（概念図）",
+"nodes":[
+{"id":"sk","x":10,"y":40,"w":150,"h":70,"label":"Server Key","sub":"最上位の鍵\n（HSM保管も可）","kind":"vault"},
+{"id":"safe","x":230,"y":40,"w":150,"h":70,"label":"Safe Key","sub":"Safeごとの鍵","kind":"vault"},
+{"id":"file","x":450,"y":40,"w":150,"h":70,"label":"File Key","sub":"ファイルごとの鍵","kind":"vault"},
+{"id":"data","x":670,"y":40,"w":120,"h":70,"label":"データ","sub":"パスワード・録画等","kind":"target"}],
+"edges":[{"from":"sk","to":"safe","label":"暗号化"},{"from":"safe","to":"file","label":"暗号化"},{"from":"file","to":"data","label":"暗号化"}]}
+</script>
+<div class="callout analogy"><span class="ttl">マトリョーシカ型の鍵束</span>
+<p>書類（データ）は鍵付きの封筒（File Key）に入り、その封筒の鍵はさらに部屋ごとの金庫（Safe Key）に、部屋の金庫の鍵は建物全体の親鍵（Server Key）で守られています。<strong>Vaultのディスクだけを盗まれても、親鍵がなければ中身は読めません。</strong></p>
+</div>
+<p>Server Keyのほかに<strong>リカバリキー（Recovery Key）</strong>があります。リカバリキーの秘密鍵は一般に「Master CD」と呼ばれる媒体に格納され、<mark>Vaultサーバとは別の場所（オフライン）で厳重に保管</mark>します。Masterユーザーでのログインや緊急時の復旧に使われます。</p>
+
+<h2>3. 組み込みユーザーとグループ</h2>
+<p>Vaultはインストール時に、いくつかのユーザーとグループを自動作成します。代表的なものを覚えましょう。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>名前</th><th>種類</th><th>特徴</th><th>運用上の扱い</th></tr></thead>
+<tbody>
+<tr><td><strong>Master</strong></td><td>ユーザー</td><td>「Authorize password requests（承認）」を除くすべてのSafe権限を持ち、どのSafeからも削除できない。System Safeを編集できる唯一のユーザー。ログインはPrivate Recovery Keyを含む<strong>Master CD</strong>でのみ可能</td><td><strong>緊急時専用（ブレークグラス）</strong>。普段は絶対に使わない</td></tr>
+<tr><td><strong>Administrator</strong></td><td>ユーザー</td><td>初期の管理者ユーザー。Masterと違い、新しいSafeへ自動で全権限が付くわけではない</td><td>初期構築後は厳重保管し、日常は個人名の管理者アカウントを使う</td></tr>
+<tr><td><strong>Vault Admins</strong></td><td>グループ</td><td>Vaultの管理機能（PVWAの管理画面等）を使える管理者グループ</td><td>メンバーは最小限に。LDAPグループをマッピングすることが多い</td></tr>
+<tr><td><strong>Auditors</strong></td><td>グループ</td><td>View audit と View Safe Members 権限を持ち、Safeの内容・操作ログ・オーナー一覧を参照できる（組み込みのAuditorユーザーが所属）</td><td>監査担当・内部監査部門</td></tr>
+<tr><td>Backup Users / DR Users / Operators など</td><td>グループ・ユーザー</td><td>Backup Users・DR UsersはBackup Safe権限（バックアップ・DR複製用）、OperatorsはManage Safe権限（Safeのプロパティ変更等。中身は見えない）</td><td>用途専用。対話ログインには使わない</td></tr>
+</tbody></table></div>
+<div class="point-box">
+  <div class="big">🚨</div>
+  <div><p class="one">Masterユーザーは「非常口の鍵」。使ったら必ず事後報告・記録・原因対策。</p>
+  <p class="small muted">Masterの利用は、全管理者がロックアウトされた等の非常事態に限ります。利用手順（誰が立ち会い、どこから鍵を出し、どう記録するか）を事前に文書化しておくのが設計者の仕事です。</p></div>
+</div>
+<div class="callout verify"><span class="ttl">公式ドキュメントで確認済み（2026-10-19）</span><p>出典：PAM - Self-Hosted「Predefined users and groups」。なお、<strong>Master以外の組み込みユーザーは作成時点では無効（disabled）</strong>で、使うには有効化が必要です。組み込みユーザー・グループを自動追加されたSafeから外せるかどうかは、DBParm.ini の設定で決まります。</p></div>
+
+<h2>4. 可用性：DR・バックアップ・冗長化</h2>
+<p>Vaultが止まるとPAM全体が止まり、特権作業ができなくなります。そのため可用性設計は必須です。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>方式</th><th>概要</th><th>守れるもの</th></tr></thead>
+<tbody>
+<tr><td><strong>DR Vault</strong></td><td>別サイトに待機用Vaultを置き、DRサービスがデータを継続的に複製。本番障害時にDR Vaultを起動して切り替える</td><td>サイト障害・サーバ障害</td></tr>
+<tr><td><strong>クラスタ構成</strong></td><td>同一サイト内で2台のVaultを共有ストレージ等で冗長化（Cluster Vault）</td><td>サーバ単体の障害（同一サイト内）</td></tr>
+<tr><td><strong>バックアップ</strong></td><td>専用のバックアップユーティリティ（PAReplicate等）でVaultデータを取得し、外部のバックアップ製品で保管</td><td>論理障害・誤操作・ランサムウェア（世代管理）</td></tr>
+<tr><td><strong>コンポーネント冗長化</strong></td><td>PVWA・PSMは複数台＋ロードバランサ、CPMは担当範囲を分けて複数台</td><td>コンポーネント障害・性能</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">DRとバックアップは別物</span>
+<p>DRは「最新の状態をすぐに引き継ぐ」仕組みなので、<strong>誤って削除したデータもそのまま複製されます</strong>。過去の状態に戻すにはバックアップが必要です。両方を設計しましょう。</p>
+</div>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図4-2：本番Vault障害時のDR切り替え（フェイルオーバー）</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":320,
+"zones":[{"x":10,"y":10,"w":380,"h":300,"label":"本番サイト"},{"x":410,"y":10,"w":380,"h":300,"label":"DRサイト"}],
+"nodes":[
+{"id":"pv","x":40,"y":60,"w":170,"h":70,"label":"本番Vault","sub":"hk-vault01\n10.10.10.11","kind":"vault","s":[1,2,5]},
+{"id":"comp","x":40,"y":210,"w":170,"h":70,"label":"PVWA/CPM/PSM","sub":"接続先リストに\n両Vaultを登録","kind":"comp","s":[4,5]},
+{"id":"dv","x":590,"y":60,"w":170,"h":70,"label":"DR Vault","sub":"hk-vault-dr01\n10.20.10.11","kind":"vault","s":[1,2,3,4,5]},
+{"id":"adm","x":590,"y":210,"w":170,"h":70,"label":"運用担当","sub":"判断・記録・復旧","kind":"user","s":[3,5]}],
+"edges":[
+{"from":"pv","to":"dv","label":"①データ複製（継続）","s":[1]},
+{"from":"dv","to":"pv","label":"②死活監視→応答なし","off":24,"dashed":true,"s":[2]},
+{"from":"adm","to":"dv","label":"③DR Vault起動","s":[3]},
+{"from":"comp","to":"dv","label":"④接続先を切替","lx":-110,"ly":30,"s":[4]},
+{"from":"adm","to":"pv","label":"⑤復旧後フェイルバック","curve":40,"dashed":true,"lx":60,"ly":-24,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="平常時の複製">平常時、DRサービスが本番Vault（<code>hk-vault01</code>）のデータとメタデータをDR Vault（<code>hk-vault-dr01</code>）へ継続的に複製します。DR Vaultは待機状態です。</li>
+<li data-label="障害検知">DR側は本番Vaultの死活を監視します。一定回数応答がない場合に障害と判断します（判定条件は設定ファイルで調整）。</li>
+<li data-label="DR Vault起動">設定により自動、または運用担当の判断による手動でDR Vaultが起動し、本番として動き始めます。<strong>誤検知による「二重稼働」を避けるため、手動判断を挟む運用も多い</strong>です。</li>
+<li data-label="コンポーネント切替">PVWA・CPM・PSM等は、設定ファイル（Vault接続情報）に複数のVaultアドレスを登録しておくことで、応答のあるVaultへ接続を切り替えます。</li>
+<li data-label="フェイルバック">本番Vaultの復旧後、DR側の最新データを戻して本番へ切り戻します（フェイルバック）。手順は手作業を含むため、<strong>年1回以上の切替訓練</strong>で手順書を検証しておきます。</li>
+</ol>
+</figure>
+
+<div class="callout tip"><span class="ttl">DR訓練は「やってみないと分からない」</span>
+<p>FWでDRサイトへの1858が開いていない、DR側PSMの録画保存先が足りない、手順書が古い…といった問題は、訓練で初めて見つかることがほとんどです。</p>
+</div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Vaultの堅牢化・パッチ・鍵（Server Key／Master CD）・DR・バックアップはすべて自社の責任</li><li>組み込みユーザー（Master・Administrator 等）とグループ（Vault Admins・Auditors 等）を自社で管理</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Vaultの運用・堅牢化・DR・バックアップはサービス提供側の責任範囲</li><li>顧客が守るのは、管理者の役割（Privilege Cloud Administrators／Auditors／Safe Managers）、認証基盤（Identity）、コネクタサーバの堅牢化（提供されるGPO堅牢化パッケージ）</li><li>組み込みユーザーは編集・削除できず、アプリ用の組み込みユーザーはライセンスを消費しない</li><li>IdP障害などに備えた緊急時のログイン手順は、SaaSでも顧客側で用意する</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Predefined users and groups、Privilege Cloud built-in users、ISPSS user roles、Upgrade connector components</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第4章）</h2>
+<div class="rq" data-correct="1"><p class="rq-q">Q1. VaultサーバをActive Directoryドメインに参加させない主な理由は？</p>
+<ul class="rq-opts"><li>ライセンスがドメイン参加を禁止しているから</li><li>ドメインが侵害されても、ドメイン管理者権限でVaultサーバへ侵入されないようにするため</li><li>ドメイン参加するとTCP 1858が使えなくなるから</li><li>ドメイン参加するとバックアップが取れないから</li></ul>
+<div class="rq-exp">ドメイン侵害がVault侵害に直結しないよう、Vaultは独立させます。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q2. Masterユーザーの説明として正しいものは？</p>
+<ul class="rq-opts"><li>日常の管理作業で使う標準的な管理者</li><li>監査ログを閲覧するためだけのユーザー</li><li>PVWAのREST API専用ユーザー</li><li>どのSafeからも削除できず（承認権限を除く）全権限を持ち、Master CDのリカバリキーでのみログインできる緊急用ユーザー</li></ul>
+<div class="rq-exp">Masterは緊急時専用です。日常使用は厳禁です。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q3. 「誤って削除したアカウント情報を前日の状態に戻したい」場合に必要なのは？</p>
+<ul class="rq-opts"><li>バックアップ</li><li>DR Vault</li><li>PSMの冗長化</li><li>ロードバランサ</li></ul>
+<div class="rq-exp">DRは最新状態を複製するため削除も複製されます。過去の状態への復元にはバックアップが必要です。</div></div>
+<div class="rq" data-correct="2"><p class="rq-q">Q4. Vaultの保存データ暗号化の鍵階層で、最上位にあるのは？</p>
+<ul class="rq-opts"><li>File Key</li><li>Safe Key</li><li>Server Key</li><li>利用者のパスワード</li></ul>
+<div class="rq-exp">Server Key → Safe Key → File Key → データ の順に入れ子で暗号化されます。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

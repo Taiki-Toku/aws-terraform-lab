@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="report.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成績・学習記録</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">実践フェーズ｜成績・学習記録</div>
+  <h1>成績・学習記録</h1>
+  <p class="lead">このブラウザに保存されている自分の学習記録を確認し、講師へ提出するファイルを作成します。</p>
+  <ul class="goal-list">
+    <li>章の完了状況・総まとめの推移・苦手な章・ケーススタディの得点を一目で把握できる</li>
+    <li>提出用ファイル（JSON）を作成し、講師の採点結果（コメント）を読み込んで確認できる</li>
+  </ul>
+</div>
+
+<div class="callout tip"><span class="ttl">提出のしかた</span>
+<ol class="small">
+<li>下の「受講者情報」に氏名と社員番号を入力する</li>
+<li>「提出用ファイルをダウンロード」を押す</li>
+<li>できたファイル（<code>cyberark-report_社員番号_日付.json</code>）を、講師の指定する方法（社内ファイル共有など）で提出する</li>
+<li>講師から採点済みファイルが返ってきたら「ファイルを読み込む」で取り込むと、講師コメントが表示されます</li>
+</ol>
+<p class="small muted">記録はこのブラウザにだけ保存されています。端末を変える場合は、提出用ファイルを新しい端末で読み込むと引き継げます。</p>
+</div>
+
+<section class="card">
+  <h3>受講者情報</h3>
+  <div class="quiz-setup">
+    <label>氏名 <input id="ln" type="text" autocomplete="name" style="flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text)"></label>
+    <label>社員番号 <input id="lid" type="text" style="flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text)"></label>
+  </div>
+  <div class="btn-row">
+    <button type="button" class="btn" id="dl">提出用ファイルをダウンロード</button>
+    <label class="btn ghost" style="cursor:pointer">ファイルを読み込む<input type="file" id="imp" accept=".json,application/json" hidden></label>
+    <button type="button" class="btn ghost" id="clear">記録をすべて消去</button>
+  </div>
+  <details class="small"><summary>ファイルを扱えない場合：内容を貼り付けて読み込む</summary>
+    <textarea id="pastearea" placeholder="提出用・採点済みファイルの内容（JSON）を貼り付け" style="width:100%;min-height:90px;font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);margin-top:6px"></textarea>
+    <div class="btn-row"><button type="button" class="btn sm ghost" id="pastebtn">貼り付けた内容を読み込む</button></div>
+  </details>
+  <p class="small" id="msg" data-msg></p>
+  <div class="btn-row"><button type="button" class="btn ghost" id="applyimp" hidden>上書きして読み込む</button></div>
+</section>
+
+<div id="out"></div>
+
+</div></main>
+<script src="assets/records.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = window.CA_STORE, R = window.CA_RECORDS, CH = window.CA_SITE.chapters;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function bar(p) { return '<div class="progress"><span style="width:' + p + "%;background:" + (p >= 80 ? "var(--ok)" : p >= 50 ? "var(--warn)" : "var(--ng)") + '"></span></div>'; }
+  function d(iso) { try { return new Date(iso).toLocaleString("ja-JP"); } catch (e) { return iso; } }
+
+  var lr = S.get("ca-learner", { name: "", id: "" });
+  $("ln").value = lr.name || ""; $("lid").value = lr.id || "";
+  function saveLearner() { S.set("ca-learner", { name: $("ln").value.trim(), id: $("lid").value.trim() }); }
+  $("ln").addEventListener("input", saveLearner); $("lid").addEventListener("input", saveLearner);
+
+  function render() {
+    var r = R.collect(), h = "";
+    // 章
+    var nd = CH.filter(function (c) { return r.chaptersDone[c.id]; }).length;
+    h += '<h2>学びフェーズ</h2><p>完了：<strong>' + nd + " / " + CH.length + "</strong> 章</p>" + bar(Math.round(nd / CH.length * 100));
+    h += '<div class="grid">' + CH.map(function (c, i) {
+      return '<a class="card" href="learn/' + c.id + '.html" style="padding:10px 14px"><span class="small">第' + (i + 1) + "章 " + esc(c.t) + "</span> " + (r.chaptersDone[c.id] ? '<span class="chip ok">完了</span>' : '<span class="chip">未完了</span>') + "</a>";
+    }).join("") + "</div>";
+    // クイズ
+    h += "<h2>総まとめ練習問題</h2>";
+    if (!r.quizHistory.length) h += '<p class="muted">まだ受験記録がありません。<a href="quiz.html">挑戦する</a></p>';
+    else {
+      h += "<p>自己ベスト（全章・全難易度・20問以上）：<strong>" + (r.quizBest === null ? "—" : r.quizBest + "%") + "</strong>｜受験回数：" + r.quizHistory.length + "回</p>";
+      h += '<div class="table-wrap"><table><thead><tr><th>日時</th><th>範囲</th><th>難易度</th><th>結果</th></tr></thead><tbody>' +
+        r.quizHistory.slice(-10).reverse().map(function (x) { return "<tr><td>" + d(x.at) + "</td><td>" + esc(x.range === "all" ? "全章" : "第" + x.range + "章") + "</td><td>" + ({ all: "すべて", "1": "基礎", "2": "応用" }[x.level] || "すべて") + "</td><td>" + x.ok + "/" + x.n + "（" + x.pct + "%）</td></tr>"; }).join("") + "</tbody></table></div>";
+      var acc = R.chapterAccuracy(r.quizHistory);
+      h += "<h3>章別の累計正答率（苦手の把握）</h3>";
+      Object.keys(acc).map(Number).sort(function (a, b) { return a - b; }).forEach(function (c) {
+        var p = Math.round(acc[c][0] / acc[c][1] * 100);
+        h += '<div class="bar-row"><a href="learn/ch' + String(c).padStart(2, "0") + '.html">第' + c + "章 " + esc(CH[c - 1] ? CH[c - 1].t : "") + "</a>" + bar(p) + '<span class="small">' + p + "%</span></div>";
+      });
+    }
+    // ケース
+    h += "<h2>ケーススタディ</h2>";
+    var ids = Object.keys(r.caseRecords);
+    if (!ids.length) h += '<p class="muted">まだ採点記録がありません。<a href="cases.html">挑戦する</a></p>';
+    else h += '<div class="table-wrap"><table><thead><tr><th>ケース</th><th>最新の得点</th><th>自己ベスト</th><th>採点日時</th></tr></thead><tbody>' +
+      ids.sort().map(function (k) { var c = r.caseRecords[k]; return "<tr><td>" + esc(c.title) + "</td><td>" + c.score + "/" + c.max + "（" + c.pct + "%）</td><td>" + (r.caseBest[k] != null ? r.caseBest[k] + "%" : "—") + "</td><td>" + d(c.at) + "</td></tr>"; }).join("") + "</tbody></table></div>";
+    // ハンズオン
+    h += "<h2>ハンズオン（第16章）</h2>";
+    Object.keys(r.handsOn).forEach(function (k) {
+      var v = r.handsOn[k], p = Math.round(v[0] / v[1] * 100);
+      h += '<div class="bar-row"><span>' + esc(R.LAB_NAMES[k]) + "</span>" + bar(p) + '<span class="small">' + v[0] + "/" + v[1] + "</span></div>";
+    });
+    // 講師コメント
+    if (r.trainerReview) {
+      var tr = r.trainerReview;
+      h += '<h2>講師からの採点・コメント</h2><div class="callout goal"><span class="ttl">' + esc(tr.trainer || "講師") + "（" + d(tr.at) + "）</span><p>" + esc(tr.overall || "").replace(/\n/g, "<br>") + "</p></div>";
+      Object.keys(tr.cases || {}).forEach(function (k) {
+        var c = tr.cases[k];
+        h += '<div class="card" style="margin:10px 0"><strong>' + esc(c.title || k) + "</strong>：講師採点 " + c.score + "/" + c.max + "点";
+        (c.essays || []).forEach(function (e) { if (e && e.comment) h += '<p class="small"><span class="chip acc">' + esc(e.q.slice(0, 30)) + "…</span> " + esc(e.comment) + "</p>"; });
+        h += "</div>";
+      });
+    }
+    $("out").innerHTML = h;
+  }
+
+  $("dl").addEventListener("click", function () {
+    saveLearner();
+    var r = R.collect();
+    if (!r.learner.name) { $("msg").textContent = "氏名を入力してください。"; $("ln").focus(); return; }
+    var day = new Date().toISOString().slice(0, 10);
+    R.download("cyberark-report_" + R.safeName(r.learner.id) + "_" + day + ".json", JSON.stringify(r, null, 2));
+    $("msg").textContent = "提出用ファイルを作成しました。講師の指定する方法で提出してください。";
+  });
+
+  var pending = null;
+  function stage(x) {
+    if (!x || x._error) { $("msg").textContent = "読み込めませんでした：" + (x ? x._error : ""); return; }
+    pending = x;
+    $("msg").textContent = "「" + ((x.learner || {}).name || "無記名") + "」の記録を読み込む準備ができました。このブラウザの記録は上書きされます。";
+    $("applyimp").hidden = false;
+  }
+  function applyImport() {
+    var x = pending; if (!x) return;
+    S.set("ca-learner", x.learner || {}); S.set("ca-done", x.chaptersDone || {});
+    S.set("ca-quiz-history", x.quizHistory || []); if (x.quizBest != null) S.set("ca-quiz-best", x.quizBest);
+    S.set("ca-case-records", x.caseRecords || {}); Object.keys(x.caseBest || {}).forEach(function (k) { S.set("ca-case-" + k, x.caseBest[k]); });
+    S.set("ca-check", x.checks || {}); S.set("ca-trainer-review", x.trainerReview || null);
+    $("ln").value = (x.learner || {}).name || ""; $("lid").value = (x.learner || {}).id || "";
+    $("msg").textContent = "読み込みました" + (x.trainerReview ? "（講師コメントあり）" : "") + "。";
+    $("applyimp").hidden = true; pending = null;
+    render();
+  }
+  $("imp").addEventListener("change", function (e) {
+    R.readFiles(e.target.files, function (list) { stage(list[0]); });
+    e.target.value = "";
+  });
+  $("pastebtn").addEventListener("click", function () { stage(R.parseText($("pastearea").value.trim())); });
+  R.twoStep($("applyimp"), "本当に上書きする（もう一度押す）", applyImport);
+  R.twoStep($("clear"), "本当に消去する（もう一度押す）", function () {
+    ["ca-done", "ca-quiz-best", "ca-quiz-history", "ca-case-records", "ca-check", "ca-trainer-review", "ca-quiz-lastorder", "ca-case-B1", "ca-case-B2", "ca-case-B3", "ca-case-B4", "ca-case-A1", "ca-case-A2", "ca-case-A3"].forEach(function (k) { try { localStorage.removeItem(k); } catch (err) { /* noop */ } });
+    $("msg").textContent = "消去しました。"; render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
