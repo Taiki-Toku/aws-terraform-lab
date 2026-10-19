@@ -34,7 +34,7 @@
     <div class="btn-row"><button type="button" class="btn sm ghost" id="tpastebtn">貼り付けた内容を追加</button></div>
   </details>
   <label class="small">講師名 <input id="tname" type="text" style="font:inherit;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text)"></label>
-  <p class="small" id="msg"></p>
+  <p class="small" id="tmsg" data-msg></p>
 </section>
 
 <div id="overview"></div>
@@ -146,7 +146,7 @@
     R.readFiles(e.target.files, function (list) {
       var errs = list.filter(function (x) { return x._error; }).map(function (x) { return x._error; });
       data = data.concat(list.filter(function (x) { return !x._error; }));
-      $("msg").textContent = data.length + "名分を読み込みました。" + (errs.length ? "読み込めなかったファイル：" + errs.join("、") : "");
+      $("tmsg").textContent = data.length + "名分を読み込みました。" + (errs.length ? "読み込めなかったファイル：" + errs.join("、") : "");
       $("csv").disabled = !data.length;
       renderOverview();
     });
@@ -155,9 +155,9 @@
 
   $("tpastebtn").addEventListener("click", function () {
     var x = R.parseText($("tpaste").value.trim());
-    if (x._error) { $("msg").textContent = "読み込めませんでした：" + x._error; return; }
+    if (x._error) { $("tmsg").textContent = "読み込めませんでした：" + x._error; return; }
     data.push(x); $("tpaste").value = "";
-    $("msg").textContent = data.length + "名分を読み込みました。"; $("csv").disabled = false; renderOverview();
+    $("tmsg").textContent = data.length + "名分を読み込みました。"; $("csv").disabled = false; renderOverview();
   });
 
   $("csv").addEventListener("click", function () {

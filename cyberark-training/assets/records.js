@@ -64,20 +64,23 @@
   }
 
   function showCopyBox(name, text) {
-    var box = document.getElementById("copybox");
+    // 表示中のページ（1ファイル版では .pane.active）のメッセージ欄の直後に出す
+    var scope = document.querySelector(".pane.active") || document;
+    var anchor = scope.querySelector("[data-msg]");
+    var parent = anchor ? anchor.parentNode : (scope.querySelector(".content") || document.querySelector(".content"));
+    var box = parent.querySelector(".copybox");
     if (!box) {
-      box = document.createElement("div"); box.id = "copybox"; box.className = "card";
+      box = document.createElement("div"); box.className = "card copybox";
       box.style.margin = "14px 0";
-      var anchor = document.getElementById("msg");
-      (anchor ? anchor.parentNode : document.querySelector(".content")).appendChild(box);
+      parent.appendChild(box);
     }
     box.innerHTML = '<p class="small"><strong>' + name.replace(/[<>&]/g, "") + '</strong>：ダウンロードが始まらない場合は、下の内容をコピーしてメールやチャットで送ってください（受け取った側は「貼り付けて読み込む」で取り込めます）。</p>' +
-      '<textarea id="copytext" readonly style="width:100%;min-height:120px;font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)"></textarea>' +
-      '<div class="btn-row"><button type="button" class="btn sm" id="copybtn">内容をコピー</button><span class="small" id="copymsg"></span></div>';
-    var ta = box.querySelector("#copytext"); ta.value = text;
-    box.querySelector("#copybtn").addEventListener("click", function () {
-      var done = function () { box.querySelector("#copymsg").textContent = "コピーしました"; };
-      var fallback = function () { ta.focus(); ta.select(); box.querySelector("#copymsg").textContent = "全体を選択しました。コピー操作をしてください"; };
+      '<textarea class="copytext" readonly aria-label="提出内容" style="width:100%;min-height:120px;font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)"></textarea>' +
+      '<div class="btn-row"><button type="button" class="btn sm copybtn">内容をコピー</button><span class="small copymsg"></span></div>';
+    var ta = box.querySelector(".copytext"), msg = box.querySelector(".copymsg"); ta.value = text;
+    box.querySelector(".copybtn").addEventListener("click", function () {
+      var done = function () { msg.textContent = "コピーしました"; };
+      var fallback = function () { ta.focus(); ta.select(); msg.textContent = "全体を選択しました。コピー操作をしてください"; };
       try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
     });
   }

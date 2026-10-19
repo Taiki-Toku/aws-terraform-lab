@@ -344,11 +344,11 @@
   }
 
   // ---------- ページャー & 完了チェック ----------
-  function buildPager() {
-    var m = current.match(/^learn\/(ch\d\d)\.html$/);
+  function buildPager(page, container) {
+    var m = (page || current).match(/^learn\/(ch\d\d)\.html$/);
     if (!m) return;
     var idx = CHAPTERS.findIndex(function (c) { return c.id === m[1]; });
-    var content = document.querySelector(".content");
+    var content = container || document.querySelector(".content");
     var done = store.get("ca-done", {});
     var box = el("div", { "class": "complete-box" });
     function paint() {
@@ -387,20 +387,17 @@
     if (p) p.innerHTML = '<div class="progress"><span style="width:' + Math.round(n / CHAPTERS.length * 100) + '%"></span></div><p class="small muted">学びフェーズ進捗：' + n + " / " + CHAPTERS.length + " 章完了</p>";
   }
 
-  function buildPage() {
+  document.addEventListener("DOMContentLoaded", function () {
+    buildShell();
+    injectMarkers();
     buildDiagrams();
     buildFlows();
     buildReviews();
     buildChecklists();
-    buildPager();
+    // 1ファイル版：全ページが最初からHTMLに入っており、表示だけを切り替える
+    if (window.CA_BUNDLE) window.CA_BUNDLE.start({ setCurrent: setCurrent, buildPager: buildPager, home: buildHomeProgress });
+    else buildPager();
     buildHomeProgress();
     document.dispatchEvent(new CustomEvent("ca:ready"));
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    buildShell();
-    injectMarkers();
-    if (window.CA_BUNDLE) window.CA_BUNDLE.start({ setCurrent: setCurrent, buildPage: buildPage });
-    else buildPage();
   });
 })();
