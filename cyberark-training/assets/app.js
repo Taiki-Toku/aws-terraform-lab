@@ -6,6 +6,17 @@
    - 章末振り返り問題（固定順）
    - 章の完了チェック（ブラウザ内保存・失敗しても動作継続）
    ========================================================= */
+// 古いiOS Safari向けの最小限のポリフィル（新しいブラウザでは何もしない）
+(function () {
+  if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = Array.prototype.forEach;
+  if (!Element.prototype.matches) Element.prototype.matches = Element.prototype.webkitMatchesSelector || Element.prototype.msMatchesSelector;
+  if (!Element.prototype.closest) Element.prototype.closest = function (sel) { var el = this; while (el && el.nodeType === 1) { if (el.matches(sel)) return el; el = el.parentElement; } return null; };
+  if (!String.prototype.padStart) String.prototype.padStart = function (n, c) { var s = String(this); c = c === undefined ? " " : String(c); while (s.length < n) s = c + s; return s.slice(-Math.max(n, String(this).length)); };
+  if (!Array.prototype.findIndex) Array.prototype.findIndex = function (f) { for (var i = 0; i < this.length; i++) if (f(this[i], i, this)) return i; return -1; };
+  if (typeof window.CustomEvent !== "function") { var CE = function (t, p) { p = p || {}; var e = document.createEvent("CustomEvent"); e.initCustomEvent(t, !!p.bubbles, !!p.cancelable, p.detail); return e; }; window.CustomEvent = CE; }
+  if (window.Element && !Element.prototype.remove) Element.prototype.remove = function () { if (this.parentNode) this.parentNode.removeChild(this); };
+})();
+
 (function () {
   "use strict";
 
