@@ -28,6 +28,14 @@ CyberArk製品（PAM Self-Hosted / Privilege Cloud ほか）を、新入社員�
 python3 tools/build_single.py   # → dist/cyberark-training.html
 ```
 
+## claude.ai への引き継ぎ
+
+`dist/handoff/` に、claude.ai で教材を作り直すためのプロンプト（`prompt.md`）と、確定済みの教材の中身を4分冊にした教材パック（`content-vol1.md`〜`content-vol4.md`）があります。教材を編集したら、次のコマンドで教材パックを作り直してください。
+
+```sh
+python3 tools/export_handoff.py   # → dist/handoff/content-vol1〜4.md
+```
+
 ## 使い方
 
 ビルド不要です。`index.html` をブラウザで開くか、任意の静的Webサーバ（社内Webサーバ、S3静的ホスティング等）に配置してください。外部CDNへの依存はありません。
