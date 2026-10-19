@@ -20,6 +20,14 @@ CyberArk製品（PAM Self-Hosted / Privilege Cloud ほか）を、新入社員�
 | `assets/quiz-bank.js` | 総まとめ問題バンク（`d: 1` 基礎／`d: 2` 応用） |
 | `assets/records.js` | 学習記録の収集・書き出し・読み込み |
 
+## 1ファイル完結版（スマートフォン向け）
+
+`dist/cyberark-training.html` は全ページを1つのHTMLにまとめた版です。ファイルを1つ開くだけで全ページを行き来でき、スマートフォンや、ファイルを個別に配れない環境で使えます。教材を編集したら、次のコマンドで作り直してください。
+
+```sh
+python3 tools/build_single.py   # → dist/cyberark-training.html
+```
+
 ## 使い方
 
 ビルド不要です。`index.html` をブラウザで開くか、任意の静的Webサーバ（社内Webサーバ、S3静的ホスティング等）に配置してください。外部CDNへの依存はありません。

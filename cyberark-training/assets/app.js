@@ -80,6 +80,24 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
   // ---------- ヘッダー & サイドバー ----------
+  function sideHtml() {
+    var done = store.get("ca-done", {});
+    var h = "<h4>はじめに</h4>";
+    PAGES.forEach(function (p, i) {
+      if (i === 3) {
+        h += "<h4>学びフェーズ（全" + CHAPTERS.length + "章）</h4>";
+        CHAPTERS.forEach(function (c, ci) {
+          var href = "learn/" + c.id + ".html";
+          h += '<a href="' + root + href + '"' + (current === href ? ' aria-current="page"' : "") + '><span class="num">' + String(ci + 1).padStart(2, "0") + "</span><span>" + c.t + "</span>" + (done[c.id] ? '<span class="done-mark" title="完了">✔</span>' : "") + "</a>";
+        });
+        h += "<h4>実践フェーズ</h4>";
+      }
+      if (p.side) h += "<h4>" + p.side + "</h4>";
+      h += '<a href="' + root + p.href + '"' + (current === p.href ? ' aria-current="page"' : "") + "><span>" + p.t + "</span></a>";
+    });
+    return h;
+  }
+
   function buildShell() {
     var done = store.get("ca-done", {});
     var header = el("header", { "class": "site-header" });
@@ -96,20 +114,7 @@
     var main = document.querySelector("main");
     var layout = el("div", { "class": "layout" });
     var side = el("nav", { "class": "sidebar", "aria-label": "目次" });
-    var h = "<h4>はじめに</h4>";
-    PAGES.forEach(function (p, i) {
-      if (i === 3) {
-        h += "<h4>学びフェーズ（全" + CHAPTERS.length + "章）</h4>";
-        CHAPTERS.forEach(function (c, ci) {
-          var href = "learn/" + c.id + ".html";
-          h += '<a href="' + root + href + '"' + (current === href ? ' aria-current="page"' : "") + '><span class="num">' + String(ci + 1).padStart(2, "0") + "</span><span>" + c.t + "</span>" + (done[c.id] ? '<span class="done-mark" title="完了">✔</span>' : "") + "</a>";
-        });
-        h += "<h4>実践フェーズ</h4>";
-      }
-      if (p.side) h += "<h4>" + p.side + "</h4>";
-      h += '<a href="' + root + p.href + '"' + (current === p.href ? ' aria-current="page"' : "") + "><span>" + p.t + "</span></a>";
-    });
-    side.innerHTML = h;
+    side.innerHTML = sideHtml();
     var backdrop = el("div", { "class": "backdrop" });
     main.parentNode.insertBefore(layout, main);
     layout.appendChild(side);
@@ -128,6 +133,18 @@
     header.querySelector(".theme-btn").addEventListener("click", toggleTheme);
     var cur = side.querySelector('[aria-current="page"]');
     if (cur && cur.scrollIntoView) { try { cur.scrollIntoView({ block: "center" }); } catch (e) { /* noop */ } }
+  }
+
+  // 1ファイル版（全ページ同梱）で表示ページを切り替えたときにナビを更新する
+  function setCurrent(page) {
+    current = page;
+    document.documentElement.setAttribute("data-page", page);
+    var side = document.querySelector(".sidebar");
+    if (side) side.innerHTML = sideHtml();
+    document.querySelectorAll(".top-links a").forEach(function (a) {
+      if (a.getAttribute("href") === root + page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    document.body.classList.remove("nav-open");
   }
 
   // ---------- 図：JSON → SVG ----------
@@ -370,9 +387,7 @@
     if (p) p.innerHTML = '<div class="progress"><span style="width:' + Math.round(n / CHAPTERS.length * 100) + '%"></span></div><p class="small muted">学びフェーズ進捗：' + n + " / " + CHAPTERS.length + " 章完了</p>";
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
-    buildShell();
-    injectMarkers();
+  function buildPage() {
     buildDiagrams();
     buildFlows();
     buildReviews();
@@ -380,5 +395,12 @@
     buildPager();
     buildHomeProgress();
     document.dispatchEvent(new CustomEvent("ca:ready"));
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    buildShell();
+    injectMarkers();
+    if (window.CA_BUNDLE) window.CA_BUNDLE.start({ setCurrent: setCurrent, buildPage: buildPage });
+    else buildPage();
   });
 })();
