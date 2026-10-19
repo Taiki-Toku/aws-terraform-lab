@@ -42,7 +42,7 @@
       chaptersDone: st.get("ca-done", {}),
       quizBest: st.get("ca-quiz-best", null),
       quizHistory: st.get("ca-quiz-history", []),
-      caseBest: (function () { var o = {}; ["B1", "B2", "B3", "A1", "A2", "A3"].forEach(function (k) { var v = st.get("ca-case-" + k, null); if (v !== null) o[k] = v; }); return o; })(),
+      caseBest: (function () { var o = {}; ["B1", "B2", "B3", "B4", "A1", "A2", "A3"].forEach(function (k) { var v = st.get("ca-case-" + k, null); if (v !== null) o[k] = v; }); return o; })(),
       caseRecords: st.get("ca-case-records", {}),
       handsOn: labProgress(st.get("ca-check", {})),
       checks: st.get("ca-check", {}),

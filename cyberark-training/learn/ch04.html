@@ -136,6 +136,13 @@
 <p>FWでDRサイトへの1858が開いていない、DR側PSMの録画保存先が足りない、手順書が古い…といった問題は、訓練で初めて見つかることがほとんどです。</p>
 </div>
 
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Vaultの堅牢化・パッチ・鍵（Server Key／Master CD）・DR・バックアップはすべて自社の責任</li><li>組み込みユーザー（Master・Administrator 等）とグループ（Vault Admins・Auditors 等）を自社で管理</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Vaultの運用・堅牢化・DR・バックアップはサービス提供側の責任範囲</li><li>顧客が守るのは、管理者の役割（Privilege Cloud Administrators／Auditors／Safe Managers）、認証基盤（Identity）、コネクタサーバの堅牢化（提供されるGPO堅牢化パッケージ）</li><li>組み込みユーザーは編集・削除できず、アプリ用の組み込みユーザーはライセンスを消費しない</li><li>IdP障害などに備えた緊急時のログイン手順は、SaaSでも顧客側で用意する</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Predefined users and groups、Privilege Cloud built-in users、ISPSS user roles、Upgrade connector components</p>
+
 <section class="review" id="review">
 <h2>振り返り問題（第4章）</h2>
 <div class="rq" data-correct="1"><p class="rq-q">Q1. VaultサーバをActive Directoryドメインに参加させない主な理由は？</p>

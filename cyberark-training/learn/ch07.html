@@ -61,7 +61,6 @@
 <p>ターゲットが受け付けない記号や長さをCPMが生成すると、変更が失敗します。例えば一部のネットワーク機器やアプリでは特定の記号が使えません。プラットフォームの「使用禁止文字」で除外しましょう。</p>
 </div>
 
-<figure class="shot" data-src="../assets/img/ch07-platform-settings.png" data-title="プラットフォームの設定画面" data-how="検証環境で複製したプラットフォームを開き、自動パスワード管理（変更・検証間隔）が見える状態"></figure>
 <h2>3. 連携アカウント（Linked Accounts）</h2>
 <div class="grid-2">
 <div class="card"><h4>🚪 Logon Account（ログオン用）</h4>
@@ -114,6 +113,13 @@
 <li data-label="初回の変更">運用ルールに従い、登録直後にCPMでパスワードを変更します。<strong>これで「人が知っている古いパスワード」が無効になり、本当の意味で管理下に入ります。</strong></li>
 </ol>
 </figure>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>プラットフォームとCPMプラグインを自社のCPMサーバで管理</li><li>プラグインの改修・追加も自社環境で実施</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>プラットフォームの考え方は同じ</li><li>Secrets Rotation Service では、プラグインはCPMと同じものを<strong>サービス側で一元管理</strong>し、エージェントにはキャッシュが配られる</li><li>ローカルでプラグインを編集しても反映はキャッシュのみ。恒久化するにはテクニカルサポートへ送付してバックエンドを更新してもらう</li><li>Secrets Rotation Service はプラットフォームグループ・ローテーショングループに未対応（制限事項）</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Secrets Rotation Service architecture、Secrets Rotation limitations and behavior changes</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第7章）</h2>

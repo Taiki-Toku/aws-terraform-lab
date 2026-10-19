@@ -106,6 +106,13 @@
 <li><strong>人の特権IDとログインIDの分離</strong>：普段のメール用IDとは別に、管理者用ID（例：<code>adm-a.takahashi</code>）を使う組織もあります。</li>
 </ul>
 
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>PVWAで認証方式（CyberArk・LDAP・RADIUS・SAML 等）を構成</li><li>LDAP連携はDirectory Mappingで定義</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>ログインの入口はISPSSの <strong>Identity</strong>（MFA・SSO、社内IdPとのSAML連携）</li><li>LDAP連携は <strong>Directory Map</strong> で定義（よく使う役割の既定マップあり）。LDAPS必須で、LDAPグループに属し有効なユーザーのみ連携される</li><li>Identityのロール（Privilege Cloud Administrators／Auditors／Safe Managers 等）は権限だけでなく<strong>消費するライセンス</strong>も決める</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：LDAP integration（Privilege Cloud）、ISPSS user roles、Set up LDAP integration（Self-Hosted）</p>
+
 <section class="review" id="review">
 <h2>振り返り問題（第11章）</h2>
 <div class="rq" data-correct="1"><p class="rq-q">Q1. SAML認証で、CyberArkがIdPから受け取るものは？</p>

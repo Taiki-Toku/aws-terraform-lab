@@ -113,10 +113,16 @@
 </ol>
 </figure>
 
-<figure class="shot" data-src="../assets/img/ch09-request.png" data-title="アクセス申請・承認の画面" data-how="検証環境で二重承認の例外を設定したアカウントに申請し、承認者側の画面を取得"></figure>
 <div class="callout key"><span class="ttl">ITSM（チケットシステム）連携</span>
 <p>ServiceNow等のチケットシステムと連携すると、「有効な変更チケットがある場合だけ利用を許可する」といった検証を自動化できます。承認の証跡がチケット側にも残り、監査対応が楽になります。対応製品・設定方法は公式ドキュメントで確認してください。</p>
 </div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Master Policyのルールと既定値（二重承認・排他・ワンタイム無効、理由入力・記録有効、変更90日・検証7日、監査90日）</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Master Policyのルール・既定値は Self-Hosted と同じ内容が公式に記載されている</li><li>例外（プラットフォーム単位）の考え方も同じ</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Understand the master policy framework（Self-Hosted）、View and set Master policy rules and settings（Privilege Cloud）</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第9章）</h2>

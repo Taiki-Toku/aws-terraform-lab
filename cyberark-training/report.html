@@ -137,7 +137,7 @@
 
   $("clear").addEventListener("click", function () {
     if (!confirm("このブラウザの学習記録（章の完了・成績・回答・チェック）をすべて消去します。元に戻せません。よろしいですか？")) return;
-    ["ca-done", "ca-quiz-best", "ca-quiz-history", "ca-case-records", "ca-check", "ca-trainer-review", "ca-quiz-lastorder", "ca-case-B1", "ca-case-B2", "ca-case-B3", "ca-case-A1", "ca-case-A2", "ca-case-A3"].forEach(function (k) { try { localStorage.removeItem(k); } catch (err) { /* noop */ } });
+    ["ca-done", "ca-quiz-best", "ca-quiz-history", "ca-case-records", "ca-check", "ca-trainer-review", "ca-quiz-lastorder", "ca-case-B1", "ca-case-B2", "ca-case-B3", "ca-case-B4", "ca-case-A1", "ca-case-A2", "ca-case-A3"].forEach(function (k) { try { localStorage.removeItem(k); } catch (err) { /* noop */ } });
     $("msg").textContent = "消去しました。"; render();
   });
 

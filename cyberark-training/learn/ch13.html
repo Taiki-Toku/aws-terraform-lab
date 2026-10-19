@@ -124,6 +124,13 @@ db.password=Hikari2019!   ← 平文のまま、7年間変更なし</code></pre>
 <tr><td>クラウドネイティブアプリ（AWS/Azure等の標準ストアを利用）</td><td>Secrets Hub</td><td>アプリ改修を最小にしつつ一元管理</td></tr>
 </tbody></table></div>
 
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>CP／CCPは自社のVaultに接続</li><li>Secrets HubはSelf-HostedのPAMをソースとして利用可能</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>CP／CCPはPrivilege Cloudでも利用可能（アプリ認証・Safe権限の考え方は同じ）</li><li>Secrets HubはPrivilege Cloudをソースとして利用可能</li><li>パスワード変更をSecrets Rotation Serviceで行う場合、Credential Providerの dual account 管理は未対応（設計時に注意）</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Secrets Hub support and scope、Secrets Rotation limitations</p>
+
 <section class="review" id="review">
 <h2>振り返り問題（第13章）</h2>
 <div class="rq" data-correct="1"><p class="rq-q">Q1. 「シークレット・ゼロ問題」の説明として正しいものは？</p>

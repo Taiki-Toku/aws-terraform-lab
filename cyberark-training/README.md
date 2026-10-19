@@ -10,7 +10,7 @@ CyberArk製品（PAM Self-Hosted / Privilege Cloud ほか）を、新入社員�
 | `references.html` | 参考出典・公式ナレッジ、記述ごとの検証状況 |
 | `glossary.html` | 用語集（検索・分類フィルタ付き） |
 | `learn/ch01.html`〜`ch16.html` | 学びフェーズ（全16章。第16章は検証環境でのハンズオン。章末振り返り問題は固定順） |
-| `cases.html` | ケーススタディ（基本3題・応用3題、部分点・自己採点ルーブリック付き） |
+| `cases.html` | ケーススタディ（基本4題・応用3題、部分点・自己採点ルーブリック付き） |
 | `quiz.html` | 総まとめ練習問題（111問、出題順・選択肢順とも毎回ランダム、難易度・範囲指定、章別正答率） |
 | `report.html` | 成績・学習記録（受講者が記録を確認し、提出用JSONを作成。講師の採点済みファイルを読み込みコメント表示） |
 | `trainer.html` | 講師用：提出ファイルの一括読み込み、一覧・CSV出力、記述問題のルーブリック採点とコメント返却 |
@@ -19,7 +19,6 @@ CyberArk製品（PAM Self-Hosted / Privilege Cloud ほか）を、新入社員�
 | `assets/cases.js` | ケーススタディ採点エンジン |
 | `assets/quiz-bank.js` | 総まとめ問題バンク（`d: 1` 基礎／`d: 2` 応用） |
 | `assets/records.js` | 学習記録の収集・書き出し・読み込み |
-| `assets/img/` | 画面キャプチャ差し込み用フォルダ（ファイル名一覧と取得ルールは `assets/img/README.md`） |
 
 ## 使い方
 
@@ -38,7 +37,6 @@ cd cyberark-training && python3 -m http.server 8000
 - **章末問題**：`<div class="rq" data-correct="正解の番号(0始まり)">` で記述します（固定順）。
 - **総まとめ問題**：`assets/quiz-bank.js` に追加します。選択肢の先頭が正解（表示時にシャッフル）。
 - **ケーススタディ**：`data-type` に `single` / `multi` / `order` / `match` / `essay` を指定します。
-- **画面キャプチャ**：`<figure class="shot" data-src="../assets/img/ファイル名.png" data-title="…" data-how="取得手順">` を置くと、画像があれば表示、無ければ差し込み枠を表示します。
 - **ハンズオンのチェックリスト**：`<ul class="checklist" data-key="lab1">` で作成します。項目数を変えたら `assets/records.js` の `LABS` も更新してください。
 
 ## 提出・採点の流れ（サーバ不要）

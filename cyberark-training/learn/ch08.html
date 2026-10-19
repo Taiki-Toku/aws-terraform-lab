@@ -100,7 +100,6 @@
 </ol>
 </figure>
 
-<figure class="shot" data-src="../assets/img/ch08-cpm-error.png" data-title="CPMエラーが表示されたアカウント詳細" data-how="検証環境で演習用アカウントのVerifyを失敗させ、エラーメッセージが見える状態"></figure>
 <h2>4. よくある失敗と切り分け</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>症状・エラーの傾向</th><th>よくある原因</th><th>確認すること</th></tr></thead>
@@ -125,6 +124,13 @@
 <li><strong>ターゲットに到達できる場所に置く</strong>：拠点やクラウドごとにCPMを置くことで、FW越えを最小化します（Privilege Cloudではコネクタとして配置）。</li>
 <li><strong>処理の集中を避ける</strong>：一斉に変更日を迎えないよう、登録時期を分散させる・時間帯を設定するなどの工夫をします。</li>
 </ul>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>CPMサーバ（Windows）を自社で構築し、Safeごとに担当CPMを割り当てる</li><li>ログは CPM の Logs フォルダ（pm.log／pm_error.log）</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>推奨は <strong>Secrets Rotation Service（SRS）</strong>：SaaS上でアクティブ-アクティブ構成・自動スケールするローテーションエンジン。変更処理はコネクタの Connector Management エージェント経由でターゲットに対して実行</li><li>エージェントはコネクタプール単位で冗長化（1プールに2エージェント）</li><li>SRSの制限：Credential Providerの dual account 管理や、管理者が自分専用の特権アカウントを作る機能に未対応、一部AWSリージョン非対応 など</li><li>従来どおりコネクタにCPMを置く構成も選択可能。CPMからSRSへの移行時は動作の違い（behavior changes）を確認</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Deploy Privilege Cloud Connector、Secrets Rotation Service architecture、Secrets Rotation limitations、CPM logs</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第8章）</h2>

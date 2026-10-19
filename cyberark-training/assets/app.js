@@ -272,24 +272,6 @@
     });
   }
 
-  // ---------- 画面キャプチャ差し込み枠 ----------
-  // <figure class="shot" data-src="../assets/img/xxx.png" data-title="…" data-how="取得手順">
-  // 画像があれば表示し、無ければ「差し込み枠」として取得手順を表示する
-  function buildShots() {
-    document.querySelectorAll("figure.shot").forEach(function (f) {
-      var src = f.getAttribute("data-src"), title = f.getAttribute("data-title") || "画面キャプチャ";
-      var how = f.getAttribute("data-how") || "";
-      var img = new Image();
-      img.alt = title;
-      img.onload = function () { f.innerHTML = ""; f.appendChild(img); f.appendChild(el("figcaption", null, esc(title))); f.classList.add("has-img"); };
-      img.onerror = function () {
-        f.innerHTML = '<div class="shot-ph"><div class="shot-ic">🖼</div><div><strong>画面キャプチャ差し込み枠：' + esc(title) + "</strong>" +
-          '<p class="small">取得手順：' + esc(how) + '</p><p class="small muted">保存先：<code>' + esc(src.replace(/^(\.\.\/)+/, "")) + "</code>（実ホスト名・IP・個人名はマスクしてください。<a href=\"" + root + 'assets/img/README.md">差し込みガイド</a>）</p></div></div>';
-      };
-      img.src = src;
-    });
-  }
-
   // ---------- チェックリスト（ハンズオン等・ブラウザ内保存） ----------
   function buildChecklists() {
     var saved = store.get("ca-check", {});
@@ -383,7 +365,6 @@
     buildDiagrams();
     buildFlows();
     buildReviews();
-    buildShots();
     buildChecklists();
     buildPager();
     buildHomeProgress();

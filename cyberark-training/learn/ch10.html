@@ -97,7 +97,6 @@ ssh a.takahashi@root@hk-web01.hikari.example@hk-psmp01.hikari.example</code></pr
 <li><strong>PTA連携</strong>：危険な操作を検知したら自動で一時停止・終了する、といった連携が可能です（第12章）。</li>
 </ul>
 
-<figure class="shot" data-src="../assets/img/ch10-recordings.png" data-title="録画一覧と再生画面" data-how="検証環境で自分のセッションの録画を再生し、操作ログ（コマンド一覧）が見える状態"></figure>
 <h2>6. よくあるトラブル</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>症状</th><th>疑うポイント</th></tr></thead>
@@ -108,6 +107,13 @@ ssh a.takahashi@root@hk-web01.hikari.example@hk-psmp01.hikari.example</code></pr
 <tr><td>特定の接続方式だけ起動しない</td><td>接続コンポーネントの設定、PSMサーバのアプリケーション実行制限（AppLocker等）で対象プログラムが許可されていない</td></tr>
 <tr><td>録画が再生できない</td><td>録画のアップロード失敗（PSM一時領域の容量不足、Vaultとの通信）</td></tr>
 </tbody></table></div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>PSM／PSM for SSHを自社で構築。PSMConnect・PSMAdminConnectの管理も自社</li><li>ライブセッションの一時停止・終了は既定で PSMLiveSessionTerminators グループ</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>PSMはコネクタ上、SSHはPSM for SSH（Unixコネクタ）で中継</li><li><strong>RDP・SSH・データベース接続はSIAの利用が推奨</strong>（軽量なコネクタ、高可用性・負荷分散を内蔵、アップグレード時の停止がほぼない）。Vaultに格納したアカウントでの接続にもSIAを使える</li><li>Webサイト・クラウドコンソール・ESX/vCenter・ファットクライアントへの接続や、高度なカスタマイズが必要な場合は <strong>PSM</strong> を使う</li><li>ライブ監視は Administrators または Auditors ロールが必要</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Set up target access for privileged sessions、Manage PSM and PSM for SSH connectors、Monitor sessions、Active session monitoring in PSM</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第10章）</h2>

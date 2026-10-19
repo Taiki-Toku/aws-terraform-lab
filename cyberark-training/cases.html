@@ -14,7 +14,7 @@
   <h1>ケーススタディ</h1>
   <p class="lead">架空企業「ヒカリ精機」で実際に起こりそうな場面を題材に、学んだ知識を「判断」に変える練習をします。</p>
   <h4>このフェーズの全体像</h4>
-  <p class="small"><strong>基本編（B1〜B3）</strong>：日常業務の判断（登録・エラー対応・委託先作業）→ <strong>応用編（A1〜A3）</strong>：インシデント初動・移行設計・アプリのシークレット管理</p>
+  <p class="small"><strong>基本編（B1〜B4）</strong>：日常業務の判断（登録・エラー対応・委託先作業・Privilege Cloudのコネクタ障害）→ <strong>応用編（A1〜A3）</strong>：インシデント初動・移行設計・アプリのシークレット管理</p>
   <h4>このフェーズのゴール</h4>
   <ul class="goal-list">
     <li>要件・制約から、Safe・権限・ポリシーの設定案を根拠付きで選べる</li>
@@ -209,6 +209,68 @@
 </ul>
 <div class="feedback">
 <p><strong>模範解答例：</strong>「パスワードをお渡しすると、作業後も知っている方が社外に残ってしまい、当社の規程上それができません。PSM経由の作業は録画が残るため、万一障害が起きたときに小林さんの作業が正しかったことを証明する材料にもなります。普段お使いのツールに近い接続方法をPSMで用意できるか確認しますので、必要なツールを教えてください。ブラウザだけで接続できる方式もあります。」</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== B4 ===================== -->
+<details class="case" data-case="B4" id="case-B4">
+<summary><span class="chip ok">基本</span><h3>B4. Privilege Cloud：週明けにコネクタが切断</h3><span class="chip">関連：5・8・10・15章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>ヒカリ精機の工場部門は Privilege Cloud を利用しています（推奨構成：コネクタ <code>hk-conn01</code>／<code>hk-conn02</code> に Connector Management エージェント＋PSM、パスワード変更は Secrets Rotation Service）。月曜の朝、次の状態になっていました。</p>
+<ul class="small">
+<li>Connector Management の画面で、2台のコネクタが両方とも「切断」表示</li>
+<li>PSM経由の接続が全員失敗。パスワードの変更・検証も週末から全件失敗</li>
+<li>Privilege Cloud ポータルへのログイン（Identity）は正常</li>
+<li>変更管理の記録：土曜にネットワーク部門が「インターネット向け通信を新しいプロキシに集約し、許可はHTTPS（443）のみに統一」する作業を実施。新プロキシは別の公開IPアドレスから外へ出る</li>
+</ul>
+<script class="dg" type="application/json">
+{"w":780,"h":190,"caption":"図：B4の状況",
+"zones":[{"x":10,"y":10,"w":360,"h":170,"label":"工場ネットワーク"},{"x":530,"y":10,"w":240,"h":170,"label":"Privilege Cloud（SaaS）"}],
+"nodes":[
+{"id":"c","x":30,"y":70,"w":150,"h":70,"label":"hk-conn01/02","sub":"CM Agent＋PSM","kind":"comp"},
+{"id":"px","x":220,"y":70,"w":130,"h":70,"label":"新プロキシ","sub":"443のみ許可\n公開IPが変更","kind":"threat"},
+{"id":"pc","x":560,"y":70,"w":190,"h":70,"label":"Privilege Cloud","sub":"Vault（1858）／API（443）","kind":"vault"}],
+"edges":[{"from":"c","to":"px"},{"from":"px","to":"pc","label":"1858は? 送信元IPは?","dashed":true}]}
+</script>
+
+<div class="cq" data-type="single" data-pts="15" data-correct="2">
+<div class="cq-h">Q1. 最も可能性の高い原因は？</div>
+<ul class="cq-opts"><li>Identityの障害でログインできないため</li><li>SaaS側のVaultが故障したため</li><li>プロキシ変更により、コネクタからの TCP 1858 の外向き通信が遮断された／送信元の公開IPが変わり、SaaS側の許可リストと一致しなくなった</li><li>Master Policyの変更間隔が短すぎるため</li></ul>
+<div class="feedback">ポータルへのログインは正常で、コネクタだけが切れています。公式要件ではコネクタは443に加えてTCP 1858の外向き通信が必要で、SaaS側は届け出た送信元IPからの通信だけを許可します。「443のみ」「公開IPの変更」の両方が当てはまります（第5章）。</div>
+</div>
+
+<div class="cq" data-type="multi" data-pts="25" data-correct="0,1,3">
+<div class="cq-h">Q2. 切り分け・対応として適切なものをすべて選んでください。</div>
+<ul class="cq-opts"><li>コネクタからVaultバックエンドの1858番ポートへの疎通を確認する（例：<code>Test-NetConnection &lt;宛先&gt; -Port 1858</code>）</li><li>新しい送信元の公開IPアドレスを確認し、テクニカルサポートへ許可リストの更新を依頼する</li><li>インターネットからコネクタへのインバウンド3389を開放する</li><li>ネットワーク部門と、宛先を限定した1858番の外向き許可（またはプロキシの経路設定）を合意する</li><li>コネクタを削除してSafeを作り直す</li></ul>
+<div class="feedback">外向き1858の疎通確認、送信元IPの届け出、ネットワーク部門との許可設定が正しい対応です。インバウンド開放は不要かつ危険で、Safeの作り直しは無関係です。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. 対応の順序を並べてください。</div>
+<ol class="cq-order">
+<li>影響範囲を確認する（全コネクタ・全機能か、ポータルは正常か）</li>
+<li>変更管理の記録から直前の変更（プロキシ集約）を特定する</li>
+<li>コネクタからの外向き通信（443・1858）と送信元IPを確認する</li>
+<li>ネットワーク部門に許可設定を、テクニカルサポートに送信元IPの更新を依頼する</li>
+<li>Connector Managementで接続回復を確認し、PSM接続とパスワード検証を試す</li>
+<li>報告し、ネットワーク変更時のチェック項目にCyberArkの通信要件を加える</li>
+</ol>
+<div class="feedback">範囲確認→直前の変更→仮説の検証→関係者への依頼→回復確認→再発防止、の型です（第15章）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="40">
+<div class="cq-h">Q4.（記述）再発防止策を、ネットワーク部門・PAMチーム双方の観点で書いてください。</div>
+<ul class="rubric">
+<li data-pts="10">ネットワーク変更の事前レビューに、CyberArkコネクタの通信要件（443・1858、TLS 1.2以上、宛先）をチェック項目として登録する</li>
+<li data-pts="10">送信元の公開IPを変える変更は、事前にテクニカルサポートへ届け出る手順にする</li>
+<li data-pts="10">Connector Managementのコネクタ状態や、パスワード変更・検証の失敗を監視し、早期に通知されるようにする</li>
+<li data-pts="10">コネクタの冗長化を、同じ経路に依存しない形で検討する（2台が同じプロキシ経由だと同時に止まる）</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>ネットワーク部門の変更レビューに「Privilege Cloudコネクタの外向き要件（443・1858、TLS 1.2以上、宛先）」と「送信元公開IPの変更時はテクニカルサポートへ事前届け出」を追加する。PAMチームは、Connector Managementのコネクタ状態とパスワード変更・検証の失敗を監視して即時に通知されるようにする。また、2台のコネクタが同じプロキシ経路に依存していたため、経路の冗長化も検討する。</p>
 </div>
 </div>
 </div>

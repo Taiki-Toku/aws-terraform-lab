@@ -128,6 +128,17 @@ window.QUIZ_BANK = window.QUIZ_BANK.concat([
  {c:13,d:1,q:"Secrets Hubの同期先として公式にサポートされていないものは？",a:["個人PCのブラウザのパスワード保存","AWS Secrets Manager","Azure Key Vault","GCP Secret Manager"],e:"同期先はAWS Secrets Manager・Azure Key Vault・GCP Secret Manager・HashiCorp Vaultです。"},
  {c:14,d:1,q:"SIA（旧Dynamic Privileged Access）がLinuxへのZSPアクセスで用いる一時的な資格情報は？",a:["接続ごとに発行される短命のSSH証明書","永続的なrootパスワード","共有のSSH秘密鍵","利用者のADパスワード"],e:"Linuxでは短命のSSH証明書、Windowsでは一時的なローカル／ドメインユーザーが使われます。"}
 ]);
+/* ---- Privilege Cloud 関連（5:5 バランス調整・2026-10-19 公式確認）---- */
+window.QUIZ_BANK = window.QUIZ_BANK.concat([
+ {c:5,d:1,q:"Privilege Cloudのコネクタの推奨構成として公式ドキュメントに記載されているのは？",a:["Connector Managementエージェント＋PSM（パスワード変更はSaaSのSecrets Rotation Service）","コネクタ上にVaultを構築する","PVWAをコネクタに構築する","コネクタは不要"],e:"推奨構成はエージェント＋PSMで、変更処理はSaaSのSecrets Rotation Serviceがエージェント経由で行います。CPMを置く従来構成も選択できます。"},
+ {c:8,d:1,q:"Secrets Rotation Service（SRS）の説明として正しいものは？",a:["CPMと同じプラグインを使い、SaaS上で動くローテーションエンジン。処理はコネクタのエージェント経由で実行","利用者のPCで動くエージェント","録画を保存するサービス","Vaultのバックアップ機能"],e:"SRSはアクティブ-アクティブ構成・自動スケールのSaaSで、プラグインはサービス側で一元管理されます。"},
+ {c:8,d:2,q:"Privilege CloudでSRSのプラグインをコネクタ上で直接編集した。どうなる？",a:["変更はキャッシュにだけ残るため、恒久化するにはテクニカルサポートに送ってバックエンドを更新してもらう","自動で全テナントに配布される","Vaultが停止する","何もしなくても恒久的に反映される"],e:"エージェントにはプラグインのキャッシュが置かれ、正本はサービス側で管理されます。"},
+ {c:10,d:2,q:"Privilege Cloudで、Linuxサーバへの日常的なSSH接続の方式として公式に推奨されているのは？",a:["SIA（Secure Infrastructure Access）","PSMでWebブラウザを起動する","PrivateArk Client","パスワードを表示して手入力する"],e:"RDP・SSH・データベースにはSIAが推奨。Webサイト・クラウドコンソール・ESX/vCenter・ファットクライアントにはPSMを使います。"},
+ {c:11,d:1,q:"Privilege Cloudで、Safeの作成・削除やメンバー管理を担う組み込みロールは？",a:["Privilege Cloud Safe Managers","Privilege Cloud Auditors","PSMLiveSessionTerminators","Backup Users"],e:"Administrators・Auditors・Safe Managersなどのロールがあり、ロールは消費するライセンスも決めます。"},
+ {c:12,d:1,q:"Privilege CloudのSyslogによるSIEM連携で使えないプロトコルは？",a:["UDP","TLS","TCP","いずれも使える"],e:"TLSが推奨、TCPも可能ですが、UDPはサポートされません。最大5台のSyslogサーバに接続できます。"},
+ {c:12,d:2,q:"Privilege Cloud環境で「資格情報窃取の疑い」や「管理外の特権アカウント」を検知する仕組みは？",a:["Threat Detection and Response（ITDR）がSIEMからログオンイベントを取り込んで検知","Safeの説明欄","Connector Managementの画面","Master Policyの理由入力"],e:"ITDRはSIEMからのログオンイベントを取り込み、資格情報窃取や管理外の特権アカウントを検知します。"},
+ {c:15,d:2,q:"Privilege Cloudのコネクタのバージョンアップについて正しいものは？",a:["Connector Managementに新版が表示されたら管理者が実行する。CPM・PSMの更新は数分の停止を伴う","SaaSと同時に必ず自動で更新される","更新は一切不要","Vaultを先に顧客が更新する必要がある"],e:"コネクタはバックエンドのバージョンに関係なくいつでも更新できます。事前にGPO堅牢化パッケージを更新します。"}
+]);
 /* 既存問題の難易度（応用＝2）。未指定は基礎＝1 */
 (function () {
   var hard = ["PVWAにはログインできるが", "全員が同時にPSM経由", "「その作業で具体的に", "「誤って削除したデータ", "全体は緩く、本番DBだけ", "何でも二重承認にすると", "AWS Secrets Managerを使う既存アプリ", "Vault型PAMで守るのが特に", "「経路の一本化」が意味する", "検証失敗が続くドメインアカウント", "Unix系の一部サーバだけ", "パスワード変更後にWindowsサービス", "CPMが生成したパスワードをターゲットが"];

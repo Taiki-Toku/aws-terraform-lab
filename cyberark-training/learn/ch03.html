@@ -77,7 +77,6 @@
 </tbody></table></div>
 <div class="callout verify"><span class="ttl">OS・バージョン要件</span><p>サポートされるOSバージョン、.NET・IISなどの前提ソフトウェアはリリースごとに変わります。構築時は該当バージョンの「System Requirements」を必ず確認してください。</p></div>
 
-<figure class="shot" data-src="../assets/img/ch03-pvwa-login.png" data-title="PVWAのログイン画面" data-how="検証環境のPVWAログイン画面（認証方式の選択が見える状態）"></figure>
 <h2>3. 通信とポート</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>通信元 → 通信先</th><th>ポート（既定）</th><th>用途</th></tr></thead>
@@ -130,6 +129,13 @@
 <div class="callout tip"><span class="ttl">トラブル時は「どの矢印が切れたか」で考える</span>
 <p>上の図の矢印1本1本が、トラブルの切り分けポイントになります。例えば「PVWAにログインはできるがConnectで失敗」なら③〜⑤、「録画が再生できない」なら⑥を疑います。</p>
 </div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Vault・PVWA・CPM・PSM・PSM for SSH・PTAをすべて自社で構築・運用する</li><li>各コンポーネントからVaultへ TCP 1858（既定）で接続</li><li>Web画面（PVWA）はIIS上に自社で構築</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Vaultと管理ポータル（PVWA相当）はSaaSとして提供される</li><li>顧客側のコネクタは <strong>Connector Managementエージェント＋PSM</strong> が推奨構成。パスワード変更はSaaSの <strong>Secrets Rotation Service</strong> がエージェント経由で実行（CPMをコネクタに置く構成も選択可）</li><li>SSH中継はPSM for SSH（Unixコネクタ）、LDAP・SIEM連携はSecure Tunnel</li><li>コネクタからSaaSへの外向き通信は TCP 443 と 1858</li><li>脅威検知はSaaSのThreat Detection and Response（ITDR）等で提供</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Privilege Cloud architecture、Deploy Privilege Cloud Connector、Network ports overview</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第3章）</h2>

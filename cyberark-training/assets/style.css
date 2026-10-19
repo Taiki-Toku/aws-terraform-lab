@@ -286,6 +286,15 @@ figure.flow { margin: 22px 0; }
 .flow-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; }
 @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
+/* ---------- Self-Hosted / Privilege Cloud 比較 ---------- */
+.dual { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); margin: 16px 0; }
+.dual > div { border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--line); background: var(--surface); }
+.dual > div > h4 { margin: 0 0 8px; }
+.dual .sh { border-top: 4px solid var(--vault); }
+.dual .pc { border-top: 4px solid var(--cloud); }
+.dual ul { margin: 0; padding-left: 1.2em; font-size: 15px; }
+.dual .src { font-size: 12.5px; color: var(--text-sub); margin: 8px 0 0; }
+
 /* ---------- Checklist ---------- */
 ul.checklist { list-style: none; padding: 0; }
 ul.checklist li label > span { min-width: 0; }
@@ -295,14 +304,6 @@ ul.checklist input { width: 18px; height: 18px; margin-top: 5px; accent-color: v
 ul.checklist input:checked + span { color: var(--text-sub); text-decoration: line-through; }
 .lab { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 18px 14px; margin: 22px 0; box-shadow: var(--shadow); }
 .lab h3 { margin-top: 16px; }
-
-/* ---------- Screenshot slots ---------- */
-figure.shot { margin: 18px 0; }
-figure.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
-figure.shot figcaption { font-size: 13px; color: var(--text-sub); text-align: center; margin-top: 6px; }
-.shot-ph { display: flex; gap: 12px; align-items: flex-start; border: 2px dashed var(--line); border-radius: var(--radius); padding: 14px 16px; background: var(--surface); }
-.shot-ph p { margin: 4px 0 0; }
-.shot-ic { font-size: 28px; line-height: 1; }
 
 /* ---------- Buttons ---------- */
 .btn { appearance: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); font: inherit; font-size: 15px; font-weight: 700; padding: 9px 16px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }

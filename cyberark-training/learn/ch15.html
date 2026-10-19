@@ -92,7 +92,6 @@
 <tr><td>年次</td><td>DR切替訓練、Masterユーザー・リカバリキーの保管確認、バージョンアップ計画</td></tr>
 </tbody></table></div>
 
-<figure class="shot" data-src="../assets/img/ch15-system-health.png" data-title="コンポーネントの稼働状態（システムヘルス）画面" data-how="検証環境で各コンポーネント（CPM・PSM等）の接続状態が一覧できる画面"></figure>
 <h2>5. 障害対応の型</h2>
 <div class="point-box">
   <div class="big">🔎</div>
@@ -146,6 +145,13 @@ POST https://pam.hikari.example/PasswordVault/API/Accounts
 <div class="card"><h4>〜60日</h4><ul class="small"><li>CPMエラーの一次切り分けを担当</li><li>Safe作成・権限付与の申請対応</li><li>公式トレーニング（Defender相当）の受講</li></ul></div>
 <div class="card"><h4>〜90日</h4><ul class="small"><li>小規模なオンボーディング（1ウェーブ）を担当</li><li>手順書の改善提案</li><li>ケーススタディ応用編を満点で再挑戦</li></ul></div>
 </div>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>LTS／STSのライフサイクルに合わせて計画的にアップグレード（LTS→LTS または最新版のみ）</li><li>順序は Vault → PVWA → CPM → その他（Primary → DR → コンポーネント）</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>SaaS側（Vault・ポータル・SRS 等）は提供側が更新</li><li>コネクタ側は、Connector Management画面に新しいバージョンが表示されたら <strong>管理者が更新を実行</strong>（自動では更新されない）。CPM・PSMの更新は数分の停止を伴い、先にGPO堅牢化パッケージを更新する</li><li>コネクタはバックエンドのバージョンに関係なくいつでも更新できる</li><li>日常運用ではConnector Managementでコネクタの状態、送信元IP・証明書の期限などを確認</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：EOL Policy、Component compatibility、Upgrade the Privilege Cloud components using Connector Management</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第15章）</h2>

@@ -82,7 +82,6 @@
 </div>
 <div class="callout verify"><span class="ttl">提供形態による違い</span><p>Self-HostedではPTAを専用サーバとして構築します。SaaS環境で同等の脅威分析を行う機能・ライセンスの構成は時期により変わっているため、Privilege Cloud環境では最新の公式ドキュメントで提供機能を確認してください。</p></div>
 
-<figure class="shot" data-src="../assets/img/ch12-pta-dashboard.png" data-title="脅威分析のダッシュボード" data-how="検証環境（またはデモ環境）の脅威分析画面。実在の利用者名・IPはマスク"></figure>
 <h2>4. 監査ログ・レポート</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>種類</th><th>中身</th><th>使う場面</th></tr></thead>
@@ -112,6 +111,13 @@
 <li><strong>定期レビュー</strong>：Safe権限（四半期）、管理対象外アカウントの有無、CPMエラーの放置がないかを定期的に確認します。</li>
 <li><strong>ログ・録画の保持期間</strong>は社内規程・法令（業界基準）に合わせ、容量計画とセットで決めます。</li>
 </ul>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>PTAを専用サーバとして構築</li><li>VaultからSyslog（変換定義XSL）でSIEMへ送信</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>監査イベントはISPSS共通の <strong>Audit service</strong> に集約され、他のSaaSサービスの記録と合わせて確認・CSV出力できる</li><li>SIEM連携はSyslog：TLS推奨（TCPも可、<strong>UDP非対応</strong>）、最大5台。Secure Tunnel経由の構成が案内されている（エージェント不要の新方式も追加されているため、テナントで確認）</li><li>脅威検知は <strong>Threat Detection and Response（ITDR）</strong>：SIEMからログオンイベントを取り込み、資格情報窃取や管理外の特権アカウントを検知</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Connect to SIEM（Privilege Cloud）、Privilege Cloud audit events、Detect, monitor, and respond to threats</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第12章）</h2>

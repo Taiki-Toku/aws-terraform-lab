@@ -38,7 +38,7 @@
 <tr><td>ターゲットとの通信</td><td>顧客ネットワーク内</td><td>顧客ネットワーク内（コネクタから）</td></tr>
 <tr><td>Safe・アカウント・ポリシー設計</td><td>顧客</td><td>顧客</td></tr>
 <tr><td>利用者・権限・承認の運用</td><td>顧客</td><td>顧客</td></tr>
-<tr><td>バージョンアップ</td><td>顧客が計画・実施</td><td>SaaS部分は自動。コネクタ側は顧客が更新（自動更新の仕組みあり）</td></tr>
+<tr><td>バージョンアップ</td><td>顧客が計画・実施</td><td>SaaS部分は提供側が更新。コネクタ側は Connector Management に新版が表示されたら管理者が更新を実行</td></tr>
 </tbody></table></div>
 <div class="callout key"><span class="ttl">SaaSでも「設計と運用」は顧客の仕事</span>
 <p>Privilege Cloudにしても、<strong>Safe設計・権限・ポリシー・オンボーディング・承認運用</strong>は顧客側の仕事のままです。第6章以降の内容は、どちらの形態でも必要な知識です。</p>
@@ -56,7 +56,7 @@
 {"id":"v","x":540,"y":170,"w":180,"h":70,"label":"Vault（SaaS）","sub":"CyberArkが運用","kind":"vault"},
 {"id":"cm","x":450,"y":290,"w":340,"h":60,"label":"Connector Management","sub":"コネクタの導入・監視・更新を管理","kind":"cloud"},
 {"id":"u","x":30,"y":45,"w":150,"h":60,"label":"利用者","sub":"ブラウザ","kind":"user"},
-{"id":"con","x":30,"y":170,"w":200,"h":90,"label":"コネクタサーバ","sub":"CPM / PSM / Secure Tunnel\nConnector Mgmt Agent\n（hk-conn01, 02）","kind":"comp"},
+{"id":"con","x":30,"y":170,"w":200,"h":90,"label":"コネクタサーバ","sub":"Connector Mgmt Agent / PSM\n（＋Secure Tunnel）\n（hk-conn01, 02）","kind":"comp"},
 {"id":"ad","x":30,"y":290,"w":130,"h":60,"label":"AD","sub":"hk-ad01","kind":"target"},
 {"id":"t","x":230,"y":290,"w":150,"h":60,"label":"ターゲット","sub":"サーバ/DB","kind":"target"}],
 "edges":[
@@ -72,7 +72,8 @@
 <tbody>
 <tr><td><strong>Identity（ISPSSの認証基盤）</strong></td><td>SaaS</td><td>Privilege Cloudへのログイン、MFA、社内IdPとのSAML連携</td></tr>
 <tr><td><strong>Privilege Cloud（Vault・ポータル）</strong></td><td>SaaS</td><td>資格情報の保管、Safe・アカウント・ポリシーの管理、録画の保管・再生</td></tr>
-<tr><td><strong>コネクタサーバ</strong></td><td>顧客側</td><td>CPM・PSM（Windows）を載せるサーバ。ターゲットに近いネットワークに配置。複数台で冗長化</td></tr>
+<tr><td><strong>コネクタサーバ</strong></td><td>顧客側</td><td>ターゲットに近いネットワークに置くWindowsサーバ。<strong>推奨構成は Connector Management エージェント＋PSM</strong>（パスワード変更はSaaSのSecrets Rotation Serviceがエージェント経由で実行）。CPM＋PSMを載せる従来構成も選択可。複数台で冗長化</td></tr>
+<tr><td><strong>Secrets Rotation Service／Discovery</strong></td><td>SaaS</td><td>CPMに代わるSaaSのパスワード変更エンジンと、アカウント発見サービス。CPMと同じプラグインを使い、エージェントを通じてターゲットを操作</td></tr>
 <tr><td><strong>PSM for SSH</strong></td><td>顧客側（Linux）</td><td>SSHセッションの中継・記録（必要な場合）</td></tr>
 <tr><td><strong>Connector Management</strong></td><td>SaaS＋顧客側エージェント</td><td>SaaS画面からコネクタの導入・状態監視・更新を行う仕組み</td></tr>
 <tr><td><strong>Secure Tunnel</strong></td><td>顧客側</td><td>SaaSとオンプレ間の暗号化トンネル（オンプレADとのLDAP連携等に利用）</td></tr>
@@ -100,20 +101,24 @@
 {"from":"cm","to":"srv","label":"②導入スクリプト","off":-14,"lx":-62,"ly":0,"s":[2]},
 {"from":"adm","to":"srv","label":"③スクリプト実行","curve":30,"s":[3]},
 {"from":"srv","to":"cm","label":"④登録・接続","off":-14,"lx":52,"ly":0,"s":[4]},
-{"from":"srv","to":"pc","label":"⑤CPM/PSM稼働","s":[5]}]}
+{"from":"srv","to":"pc","label":"⑤PSM・変更処理が稼働","s":[5]}]}
 </script>
 <ol class="flow-desc">
 <li data-label="コネクタを追加">管理者はSaaSの管理画面でConnector Managementを開き、「コネクタを追加」を選びます。導入先のOSや用途を指定します。</li>
 <li data-label="導入スクリプト生成">画面に導入スクリプトが生成されます。スクリプトには認証用の一時トークンが含まれ、<strong>有効期限が短く設定されています</strong>（期限切れの場合は再生成）。</li>
 <li data-label="サーバで実行">準備したコネクタサーバ（<code>hk-conn01</code>）上で、管理者権限でスクリプトを実行します。Connector Managementのエージェントが導入されます。</li>
 <li data-label="登録・接続">エージェントがSaaSへアウトバウンド接続して登録されます。以後、画面からCPM・PSM等のコンポーネントの導入や状態確認ができるようになります。</li>
-<li data-label="コンポーネント稼働">CPM・PSMがPrivilege Cloudと通信を開始し、ターゲットのパスワード管理やセッション中継が可能になります。冗長化のため2台目（<code>hk-conn02</code>）も同様に導入します。</li>
+<li data-label="コンポーネント稼働">画面からPSM（従来構成ならCPMも）を導入すると、Privilege Cloudと通信を開始します。推奨構成では、パスワード変更はSaaSのSecrets Rotation Serviceがこのエージェント経由で実行し、PSMがセッションを中継します。冗長化のため2台目（<code>hk-conn02</code>）も同様に導入します。</li>
 </ol>
 </figure>
 <div class="callout danger"><span class="ttl">「HTTPSだけ開ければよい」は誤り</span>
 <p>Privilege Cloudのコネクタは 443 に加えて <strong>TCP 1858</strong> の外向き通信が必要です。プロキシ経由でHTTPSだけを許可している環境では、1858 の扱いを事前にネットワーク担当と決めておかないと、コネクタがVaultに接続できません。また、IdiraはSaaS側で<strong>特定IPからのインバウンドのみ許可</strong>するため、コネクタの<strong>送信元となる公開IPアドレスをテクニカルサポートに届け出る</strong>必要があります（送信元IPは常に同じになるよう経路を固定）。IPv4のみ対応です。</p>
 </div>
 <div class="callout verify"><span class="ttl">確認ポイント</span><p>導入手順・前提条件（OS、.NET、通信要件、トークン有効期限）は更新が頻繁です。必ず最新の「Connector Management」ドキュメントで確認してから作業してください。</p></div>
+
+<div class="callout key"><span class="ttl">Privilege Cloudでの接続方式の選び方</span>
+<p>公式ドキュメントでは、RDP・SSH・データベースへの接続は <strong>SIA（Secure Infrastructure Access）</strong> の利用が推奨されています（軽量なコネクタ、高可用性・負荷分散を内蔵、更新時の停止がほぼない）。Webサイト・クラウドコンソール・ESX/vCenter・ファットクライアントへの接続や高度なカスタマイズが必要な場合は <strong>PSM</strong> を使います。詳しくは第10章・第14章。</p>
+</div>
 
 <h2>4. 比較と選び方</h2>
 <div class="table-wrap"><table>

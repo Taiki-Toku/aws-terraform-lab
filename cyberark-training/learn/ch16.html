@@ -33,7 +33,7 @@
 </ul>
 </div>
 
-<div class="callout verify"><span class="ttl">画面名・メニュー名について</span><p>PVWA（Self-Hosted）とPrivilege Cloudでは画面構成が異なり、バージョンによってもメニュー名が変わります。本章では操作を「何をするか」で書いています。迷ったら講師に確認するか、公式ドキュメントの該当バージョンを参照してください。各演習の画面キャプチャ枠には、講師が自社の検証環境の画面を差し込めます。</p></div>
+<div class="callout verify"><span class="ttl">画面名・メニュー名について</span><p>PVWA（Self-Hosted）とPrivilege Cloudでは画面構成が異なり、バージョンによってもメニュー名が変わります。本章では操作を「何をするか」で書いています。迷ったら講師に確認するか、公式ドキュメントの該当バージョンを参照してください。</p></div>
 
 <h2>検証環境の構成（架空）</h2>
 <script class="dg" type="application/json">
@@ -66,7 +66,6 @@
 <section class="lab">
 <h3>演習1：画面ツアー（30分）</h3>
 <p><strong>目的：</strong>どこに何があるかを把握する（第3章）。</p>
-<figure class="shot" data-src="../assets/img/ch16-pvwa-home.png" data-title="ログイン後のトップ画面" data-how="検証環境のPVWA（またはPrivilege Cloud）にログインし、アカウント一覧が表示された状態で取得"></figure>
 <ul class="checklist" data-key="lab1">
 <li>検証環境のPVWA（<code>https://lab-pvwa01.lab.hikari.example/PasswordVault</code>）に自分のIDとMFAでログインした</li>
 <li>アカウント一覧・Safe一覧・録画（監視）画面・申請（承認）画面の場所を確認した</li>
@@ -93,7 +92,6 @@
 <section class="lab">
 <h3>演習3：Linuxアカウントの登録・検証・変更（60分）</h3>
 <p><strong>目的：</strong>Logon Account付きでrootに相当するアカウントを登録し、CPMで管理下に入れる（第7・8章）。</p>
-<figure class="shot" data-src="../assets/img/ch16-add-account.png" data-title="アカウント追加画面" data-how="アカウント追加で、プラットフォームとSafeを選び、アドレス・ユーザー名を入力した状態（パスワード欄は空またはマスクした状態）で取得"></figure>
 <ul class="checklist" data-key="lab3">
 <li><code>labops-XX</code>（Logon Account）を先に登録した</li>
 <li><code>labroot-XX</code> を、講師指定のLinux用プラットフォーム（例：<code>LAB-Unix-SSH</code>）とSafe <code>LAB-STG-INF-LNX-XX</code> を指定して登録した</li>
@@ -115,7 +113,6 @@
 <li>録画一覧から自分のセッションを探し、再生できた</li>
 <li>操作ログ（コマンド）で <code>id</code> を検索し、録画の該当箇所へジャンプできた</li>
 </ul>
-<figure class="shot" data-src="../assets/img/ch16-recording.png" data-title="録画・操作ログの再生画面" data-how="演習で自分が行ったセッションの録画を再生し、コマンド一覧が見えている状態で取得"></figure>
 </section>
 
 <!-- 演習5 -->
@@ -214,6 +211,13 @@ Invoke-RestMethod -Method Get -Uri "$base/API/Accounts?search=labroot" -Headers 
 <li>手元のメモ・スクリーンショットにパスワードが残っていないことを確認した</li>
 </ul>
 <p class="small muted">チェック状態はこのブラウザに保存され、<a href="../report.html">成績・学習記録</a>から講師へ提出できます。</p>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>本章の手順は Self-Hosted の検証環境（PVWA）を前提に記載</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Privilege Cloudの検証テナントで行う場合は、PVWAをPrivilege Cloudポータル（Identityでログイン）に読み替える</li><li>演習3・6・7のパスワード変更・検証・調整は、Secrets Rotation Service構成ではエージェント経由で実行され、結果はポータルで確認する</li><li>演習4はSIA（RDP・SSH）とPSMの両方で接続して違いを確かめるとよい</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Deploy Privilege Cloud Connector、Set up target access for privileged sessions</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第16章）</h2>

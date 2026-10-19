@@ -97,7 +97,6 @@
 <tr><td>Access Safe without confirmation</td><td>二重承認が必要なSafeでも承認なしで使える（緊急要員等。付与は慎重に）</td></tr>
 </tbody></table></div>
 
-<figure class="shot" data-src="../assets/img/ch06-safe-members.png" data-title="Safeメンバーと権限の設定画面" data-how="検証環境のSafeでメンバー追加画面を開き、権限のチェックボックス一覧が見える状態"></figure>
 <h3>「Use」と「Retrieve」の違い（最重要）</h3>
 <div class="grid-2">
 <div class="card" style="border-color:var(--ok)"><h4>✅ List ＋ Use</h4><p>PSM経由で<strong>接続はできるが、パスワードは見えない</strong>。<br>→ 一般の運用担当・委託先に推奨。パスワードを知る人が増えないので、変更頻度を下げても安全性を保ちやすい。</p></div>
@@ -150,6 +149,13 @@
 <li data-label="許可と記録">すべて満たせば利用が許可され、誰が・いつ・どのアカウントを・何のために使ったかが監査ログに記録されます。</li>
 </ol>
 </figure>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>Safe名は最大28文字。<code>\ / : * &lt; &gt; . | ? " % &amp; +</code> 等は使用不可</li><li>Safe作成にはVaultの「Add Safes」権限が必要</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>Safeの考え方・権限（List / Use / Retrieve 等）は同じ</li><li>Safe名は最大28文字（<code>;</code> も使用不可）</li><li>Safeの作成・削除やメンバー管理は <strong>Privilege Cloud Safe Managers</strong> ロールが担う</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Add a Safe（Self-Hosted）、Create and manage Safes for access control（Privilege Cloud）、ISPSS user roles</p>
 
 <section class="review" id="review">
 <h2>振り返り問題（第6章）</h2>
