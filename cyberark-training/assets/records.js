@@ -50,12 +50,56 @@
     };
   }
 
+  // ダウンロードに加え、ダウンロードできない環境（スマホのファイル表示・埋め込み表示など）向けに
+  // 内容をコピーできる欄を表示する
   function download(name, text, type) {
-    var blob = new Blob([text], { type: type || "application/json" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = name;
-    document.body.appendChild(a); a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    try {
+      var blob = new Blob([text], { type: type || "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    } catch (e) { /* コピー欄で代替 */ }
+    showCopyBox(name, text);
+  }
+
+  function showCopyBox(name, text) {
+    var box = document.getElementById("copybox");
+    if (!box) {
+      box = document.createElement("div"); box.id = "copybox"; box.className = "card";
+      box.style.margin = "14px 0";
+      var anchor = document.getElementById("msg");
+      (anchor ? anchor.parentNode : document.querySelector(".content")).appendChild(box);
+    }
+    box.innerHTML = '<p class="small"><strong>' + name.replace(/[<>&]/g, "") + '</strong>：ダウンロードが始まらない場合は、下の内容をコピーしてメールやチャットで送ってください（受け取った側は「貼り付けて読み込む」で取り込めます）。</p>' +
+      '<textarea id="copytext" readonly style="width:100%;min-height:120px;font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--text)"></textarea>' +
+      '<div class="btn-row"><button type="button" class="btn sm" id="copybtn">内容をコピー</button><span class="small" id="copymsg"></span></div>';
+    var ta = box.querySelector("#copytext"); ta.value = text;
+    box.querySelector("#copybtn").addEventListener("click", function () {
+      var done = function () { box.querySelector("#copymsg").textContent = "コピーしました"; };
+      var fallback = function () { ta.focus(); ta.select(); box.querySelector("#copymsg").textContent = "全体を選択しました。コピー操作をしてください"; };
+      try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+    });
+  }
+
+  // 貼り付けたテキスト（JSON）を読み込む
+  function parseText(text, label) {
+    try { var d = JSON.parse(text); if (d.schema === SCHEMA) { d._file = label || "貼り付け"; return d; } return { _error: (label || "貼り付け") + "：形式が違います" }; }
+    catch (e) { return { _error: (label || "貼り付け") + "：JSONとして読めません" }; }
+  }
+
+  // confirm() が使えない環境でも動く2段階確認ボタン
+  function twoStep(btn, armedLabel, action) {
+    var label = btn.textContent, armed = false, timer = null;
+    btn.addEventListener("click", function () {
+      if (!armed) {
+        armed = true; btn.textContent = armedLabel; btn.classList.remove("ghost");
+        timer = setTimeout(function () { armed = false; btn.textContent = label; btn.classList.add("ghost"); }, 5000);
+        return;
+      }
+      clearTimeout(timer); armed = false; btn.textContent = label; btn.classList.add("ghost");
+      action();
+    });
   }
 
   function readFiles(files, cb) {
@@ -75,5 +119,5 @@
   // 環境によって非ASCIIのファイル名が無視されるため、ファイル名は英数字のみにする（氏名はファイル内に保存）
   function safeName(s) { var v = String(s || "").replace(/[^A-Za-z0-9_-]+/g, ""); return v || "learner"; }
 
-  window.CA_RECORDS = { SCHEMA: SCHEMA, LABS: LABS, LAB_NAMES: LAB_NAMES, collect: collect, download: download, readFiles: readFiles, chapterAccuracy: chapterAccuracy, labProgress: labProgress, safeName: safeName };
+  window.CA_RECORDS = { SCHEMA: SCHEMA, LABS: LABS, LAB_NAMES: LAB_NAMES, collect: collect, download: download, readFiles: readFiles, parseText: parseText, twoStep: twoStep, chapterAccuracy: chapterAccuracy, labProgress: labProgress, safeName: safeName };
 })();

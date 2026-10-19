@@ -29,6 +29,10 @@
     <label class="btn" style="cursor:pointer">ファイルを選択（複数可）<input type="file" id="files" accept=".json,application/json" multiple hidden></label>
     <button type="button" class="btn ghost" id="csv" disabled>一覧をCSVで出力</button>
   </div>
+  <details class="small"><summary>ファイルを扱えない場合：内容を貼り付けて追加</summary>
+    <textarea id="tpaste" placeholder="受講者から届いた内容（JSON）を貼り付け" style="width:100%;min-height:90px;font-family:var(--mono);font-size:12px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text);margin-top:6px"></textarea>
+    <div class="btn-row"><button type="button" class="btn sm ghost" id="tpastebtn">貼り付けた内容を追加</button></div>
+  </details>
   <label class="small">講師名 <input id="tname" type="text" style="font:inherit;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--text)"></label>
   <p class="small" id="msg"></p>
 </section>
@@ -147,6 +151,13 @@
       renderOverview();
     });
     e.target.value = "";
+  });
+
+  $("tpastebtn").addEventListener("click", function () {
+    var x = R.parseText($("tpaste").value.trim());
+    if (x._error) { $("msg").textContent = "読み込めませんでした：" + x._error; return; }
+    data.push(x); $("tpaste").value = "";
+    $("msg").textContent = data.length + "名分を読み込みました。"; $("csv").disabled = false; renderOverview();
   });
 
   $("csv").addEventListener("click", function () {
