@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="index.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CyberArk 新人研修</title>
+<meta name="description" content="CyberArk製品（PAM / Privilege Cloud ほか）を新人が業務で使い始められるようにするための研修サイト">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">WELCOME｜はじめに</div>
+  <h1>CyberArk 新人研修サイト</h1>
+  <p class="lead">特権アクセス管理（PAM）の考え方から、CyberArk製品の機能・設計思想・日常運用までを一通り学び、<strong>「先輩の横で実務を始められる」</strong>状態になることを目指します。</p>
+  <div id="home-progress"></div>
+</div>
+
+<div class="point-box">
+  <div class="big">🔑</div>
+  <div>
+    <p class="one">CyberArkを一言でいうと「会社中の“マスターキー”を、金庫に入れて、使うたびに記録し、使い終わったら鍵を作り替える仕組み」です。</p>
+    <p class="small muted">この一文の意味が全部説明できるようになれば、研修は合格です。</p>
+  </div>
+</div>
+
+<h2>研修全体像とゴール</h2>
+<p>研修は次の4フェーズで進めます。各フェーズの冒頭、各章の冒頭にも「全体像とゴール」を掲載しています。</p>
+
+<script class="dg" type="application/json">
+{"w":820,"h":200,"title":"研修フェーズの流れ","caption":"図：研修の進め方（左から右へ）",
+"nodes":[
+{"id":"a","x":10,"y":60,"w":170,"h":80,"label":"① はじめに","sub":"出典・用語集\n全体像とゴール","kind":"user"},
+{"id":"b","x":220,"y":60,"w":170,"h":80,"label":"② 学び","sub":"全16章（ハンズオン含む）\n＋章末振り返り","kind":"comp"},
+{"id":"c","x":430,"y":60,"w":170,"h":80,"label":"③ ケーススタディ","sub":"基本4題＋応用3題\n部分点あり採点","kind":"vault"},
+{"id":"d","x":640,"y":60,"w":170,"h":80,"label":"④ 総まとめ","sub":"ランダム出題\n苦手分析","kind":"target"}],
+"edges":[{"from":"a","to":"b"},{"from":"b","to":"c"},{"from":"c","to":"d"}]}
+</script>
+
+<div class="table-wrap"><table>
+<thead><tr><th>フェーズ</th><th>内容</th><th>ゴール（できるようになること）</th><th>目安時間</th></tr></thead>
+<tbody>
+<tr><td>① はじめに</td><td><a href="references.html">出典・公式ナレッジ</a>／<a href="glossary.html">用語集</a>／本ページ</td><td>学習の進め方と、困ったときに調べる場所（公式ドキュメント等）がわかる</td><td>30分</td></tr>
+<tr><td>② 学び</td><td>全16章（基礎→製品→設計→運用→ハンズオン）</td><td>各コンポーネントの役割・設計の考え方・運用の勘所を自分の言葉で説明できる</td><td>15〜20時間＋ハンズオン6〜8時間</td></tr>
+<tr><td>③ ケーススタディ</td><td><a href="cases.html">基本編4題・応用編3題</a></td><td>架空企業の要件から、設計判断・トラブル切り分け・インシデント初動を考えられる</td><td>4〜6時間</td></tr>
+<tr><td>④ 総まとめ練習問題</td><td><a href="quiz.html">ランダム出題の問題バンク</a></td><td>正答率80%以上を安定して取れる（出題順・選択肢順は毎回変わります）</td><td>1〜2時間×数回</td></tr>
+<tr><td>⑤ 記録・提出</td><td><a href="report.html">成績・学習記録</a>／<a href="trainer.html">講師用ページ</a></td><td>学習記録を講師へ提出し、記述問題の講師採点・コメントを受け取る</td><td>—</td></tr>
+</tbody></table></div>
+
+<div class="callout goal"><span class="ttl">研修修了時の到達目標</span>
+<ol>
+<li>「特権ID」とは何か、なぜ狙われるのか、PAMで何を防ぐのかを非エンジニアにも説明できる。</li>
+<li>CyberArkの主要コンポーネント（Vault / PVWA / CPM / PSM / PSM for SSH / PTA）と、SaaS版（Privilege Cloud）の構成要素を図で描ける。</li>
+<li>Safe・アカウント・プラットフォーム・Master Policyの関係を理解し、要件に合った設定案を作れる。</li>
+<li>パスワード変更失敗、セッション接続失敗などの典型トラブルを、ログと構成から切り分けられる。</li>
+<li>アプリケーションのシークレット管理、ZSP/JIT（ゼロ・スタンディング特権／ジャストインタイム）などモダンな領域の製品の位置づけを説明できる。</li>
+</ol></div>
+
+<h2>学びフェーズ：全16章</h2>
+<p class="muted small">カードをクリックすると各章へ移動します。章末の「この章を完了にする」を押すと進捗に反映されます。</p>
+<div class="grid" id="chapter-cards"></div>
+
+<h3>章の構成（ロードマップ）</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ブロック</th><th>章</th><th>このブロックの狙い</th></tr></thead>
+<tbody>
+<tr><td>基礎</td><td>1〜2章</td><td>なぜPAMが必要か、CyberArkの全体地図</td></tr>
+<tr><td>コア構成</td><td>3〜5章</td><td>PAMの部品と通信、金庫（Vault）の守り方、提供形態の違い</td></tr>
+<tr><td>設計・設定</td><td>6〜9章</td><td>Safe・アカウント・プラットフォーム・パスワード自動管理・アクセス制御ポリシー</td></tr>
+<tr><td>利用・監視</td><td>10〜12章</td><td>セッション管理、認証連携、脅威検知と監査</td></tr>
+<tr><td>発展</td><td>13〜14章</td><td>アプリのシークレット管理、ZSP/JITとモダンアクセス</td></tr>
+<tr><td>実践</td><td>15〜16章</td><td>設計思想・段階導入・日常運用・障害対応、検証環境でのハンズオン</td></tr>
+</tbody></table></div>
+
+<div class="callout goal"><span class="ttl">2つの提供形態をバランスよく（Self-Hosted 5：Privilege Cloud 5）</span>
+<p>CyberArk PAMには、自社で構築する <strong>Self-Hosted</strong> と、SaaSの <strong>Privilege Cloud</strong> があります。本教材は両方を同じ比重で扱います。第5章で全体像を比べ、第3〜16章の章末にある「Self-Hosted と Privilege Cloud の違い（この章のポイント）」で、章ごとの差分を確認してください。</p>
+</div>
+
+<h2>この教材の使い方</h2>
+<div class="grid-2">
+<div class="card"><h4>📘 マークの意味</h4>
+<div class="callout analogy" style="margin:8px 0"><span class="ttl">身近な例え</span>難しい概念を日常の例に置き換えます。</div>
+<div class="callout key" style="margin:8px 0"><span class="ttl">必ず覚える</span>現場で必ず使う重点項目です。</div>
+<div class="callout danger" style="margin:8px 0"><span class="ttl">事故につながる</span>やってはいけないこと・誤解しやすい点です。</div>
+<div class="callout tip" style="margin:8px 0"><span class="ttl">先輩の知恵</span>運用現場で役立つ小技です。</div>
+</div>
+<div class="card"><h4>🧭 フロー図の見方</h4>
+<p>処理の流れを説明する箇所では、図の下に<strong>ラジオボタン（STEP 1, 2, 3 …）</strong>があります。STEPを選ぶと、図のその段階の矢印・部品だけが強調され、説明文が切り替わります。「次へ」ボタンでも進められます。</p>
+<p class="small muted">スマートフォンでは図を横にスクロールできます。</p>
+<h4>🏢 架空の舞台設定</h4>
+<p class="small">本教材は架空の製造業<strong>「ヒカリ精機株式会社」</strong>（ドメイン <code>hikari.example</code>）の情報システム部を舞台にしています。登場人物・ホスト名・IPアドレスはすべて架空です。</p>
+</div>
+</div>
+
+<h3>登場人物（すべて架空）</h3>
+<div class="grid">
+<div class="card persona"><div class="avatar" style="background:#1f5fd1">葵</div><div><strong>高橋 葵</strong><br><span class="small muted">新入社員。PAMチーム配属。あなた自身の分身です。</span></div></div>
+<div class="card persona"><div class="avatar" style="background:#1b7f4b">誠</div><div><strong>山本 誠</strong><br><span class="small muted">PAMチームの先輩（CyberArk歴8年）。たとえ話が得意。</span></div></div>
+<div class="card persona"><div class="avatar" style="background:#8a5a00">玲</div><div><strong>森 玲奈</strong><br><span class="small muted">情報セキュリティ部 課長。監査・規程の責任者。</span></div></div>
+<div class="card persona"><div class="avatar" style="background:#5b3fc4">翔</div><div><strong>中村 翔</strong><br><span class="small muted">業務アプリ開発チーム。DB接続パスワードの扱いに悩み中。</span></div></div>
+<div class="card persona"><div class="avatar" style="background:#b4232a">拓</div><div><strong>小林 拓也</strong><br><span class="small muted">保守委託先「ネクスト保守サービス（架空）」の担当者。</span></div></div>
+</div>
+
+<h3>ヒカリ精機の主なシステム（架空）</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ホスト名</th><th>IPアドレス</th><th>役割</th></tr></thead>
+<tbody>
+<tr><td><code>hk-vault01</code></td><td>10.10.10.11</td><td>Digital Vault（本番）</td></tr>
+<tr><td><code>hk-vault-dr01</code></td><td>10.20.10.11</td><td>DR Vault（災害対策サイト）</td></tr>
+<tr><td><code>hk-pvwa01 / 02</code></td><td>10.10.20.21 / .22</td><td>PVWA（Web画面）、ロードバランサ配下 <code>pam.hikari.example</code></td></tr>
+<tr><td><code>hk-cpm01</code></td><td>10.10.20.31</td><td>CPM（パスワード自動管理）</td></tr>
+<tr><td><code>hk-psm01 / 02</code></td><td>10.10.20.41 / .42</td><td>PSM（Windows/RDP系セッション管理）</td></tr>
+<tr><td><code>hk-psmp01</code></td><td>10.10.20.51</td><td>PSM for SSH（Linux/SSH系セッション管理）</td></tr>
+<tr><td><code>hk-pta01</code></td><td>10.10.20.61</td><td>PTA（特権脅威分析）</td></tr>
+<tr><td><code>lab-*</code>（検証環境）</td><td>10.99.0.0/16</td><td>第16章ハンズオン用（lab.hikari.example）</td></tr>
+<tr><td><code>hk-ad01</code></td><td>10.30.0.10</td><td>Active Directory ドメインコントローラ</td></tr>
+<tr><td><code>hk-web01</code></td><td>10.30.1.11</td><td>Linux Webサーバ（root, opsadmin）</td></tr>
+<tr><td><code>hk-web02</code></td><td>10.40.1.12</td><td>AWS上のLinux Webサーバ（第14章 SIAの例）</td></tr>
+<tr><td><code>hk-app01</code></td><td>10.30.1.21</td><td>販売アプリサーバ（第13章 CCPの例）</td></tr>
+<tr><td><code>hk-conn01 / 02</code></td><td>10.10.40.11 / .12</td><td>Privilege Cloud コネクタ（第5章・ケーススタディの例）</td></tr>
+<tr><td><code>hk-db01</code></td><td>10.30.2.21</td><td>Oracle Database（SYSTEM, appuser）</td></tr>
+<tr><td><code>hk-fs01</code></td><td>10.30.3.31</td><td>Windows ファイルサーバ（ローカルAdministrator）</td></tr>
+</tbody></table></div>
+
+<div class="callout verify"><span class="ttl">情報の鮮度について</span>
+<p>本教材は2026年10月時点で確認できた公開情報をもとに作成しています。2026年2月にPalo Alto NetworksによるCyberArkの買収が完了し、2026年5月には新ブランド「Idira」が発表されました。製品名・画面名は今後も変わる可能性があります。手順やバージョン固有の値は、必ず<a href="references.html">公式ドキュメント</a>の該当バージョンで確認してください。</p>
+</div>
+
+</div></main>
+<script src="assets/app.js"></script>
+</body>
+</html>

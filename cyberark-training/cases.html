@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="ja" data-root="" data-page="cases.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CyberArk ケーススタディ</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">実践フェーズ｜ケーススタディ</div>
+  <h1>ケーススタディ</h1>
+  <p class="lead">架空企業「ヒカリ精機」で実際に起こりそうな場面を題材に、学んだ知識を「判断」に変える練習をします。</p>
+  <h4>このフェーズの全体像</h4>
+  <p class="small"><strong>基本編（B1〜B4）</strong>：日常業務の判断（登録・エラー対応・委託先作業・Privilege Cloudのコネクタ障害）→ <strong>応用編（A1〜A3）</strong>：インシデント初動・移行設計・アプリのシークレット管理</p>
+  <h4>このフェーズのゴール</h4>
+  <ul class="goal-list">
+    <li>要件・制約から、Safe・権限・ポリシーの設定案を根拠付きで選べる</li>
+    <li>エラーやアラートに対し、正しい順序で切り分け・初動対応ができる</li>
+    <li>移行やアプリ連携など、複数の製品・関係者が絡む設計の論点を挙げられる</li>
+  </ul>
+</div>
+
+<div class="callout goal"><span class="ttl">採点のしくみ（柔軟採点）</span>
+<ul class="small">
+<li><strong>単一選択</strong>：正解で満点</li>
+<li><strong>複数選択</strong>：正しく選んだ数から誤って選んだ数を引いて部分点（0点未満にはならない）</li>
+<li><strong>並べ替え・対応付け</strong>：位置・対応が合っている項目ごとに部分点</li>
+<li><strong>記述</strong>：「採点する」を押すと模範解答と採点観点（ルーブリック）が表示されます。自分の答えに含まれる観点にチェックを入れると加点されます（研修では講師がチェックしても構いません）</li>
+<li>ランク：S（90%以上）／A（75%以上）／B（60%以上）／C。自己ベストはこのブラウザに保存されます</li>
+<li>採点した回答（記述を含む）は<a href="report.html">成績・学習記録</a>から講師へ提出でき、講師は<a href="trainer.html">講師用ページ</a>で採点し直してコメントを返せます</li>
+</ul>
+</div>
+
+<h3>挑戦状況</h3>
+<div id="case-summary"></div>
+
+<!-- ===================== B1 ===================== -->
+<details class="case" data-case="B1" id="case-B1" open>
+<summary><span class="chip ok">基本</span><h3>B1. 新規Linuxサーバの登録依頼</h3><span class="chip">関連：6・7・8章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>インフラ課から「本番Webサーバ <code>hk-web03</code>（10.30.1.13、RHEL）を構築したので、rootをCyberArkの管理下に入れてほしい」と依頼が来ました。先輩の山本さんから、高橋さんが担当するよう指示されました。</p>
+<ul class="small">
+<li><code>hk-web03</code> は <code>PermitRootLogin no</code>（rootで直接SSH不可）。管理者は一般ユーザー <code>opsadmin</code> でログインして <code>sudo</code>/<code>su</code> する運用</li>
+<li>インフラ課の運用担当（ADグループ <code>GG_PAM_INF_USERS</code>）は、PSM経由でrootを使いたい。パスワードを見る必要はない</li>
+<li>既存のSafe：<code>HK-PRD-INF-LNX-ROOT</code>（本番Linux root）、<code>HK-STG-INF-LNX-ROOT</code>（検証Linux root）、<code>HK-PRD-DBA-ORA-SYS</code>（本番Oracle）</li>
+<li>構築時のrootパスワードは、構築ベンダーと構築担当3名が知っている</li>
+</ul>
+
+<div class="cq" data-type="single" data-pts="10" data-correct="0">
+<div class="cq-h">Q1. rootアカウントを格納するSafeとして適切なのは？</div>
+<ul class="cq-opts"><li>HK-PRD-INF-LNX-ROOT</li><li>HK-STG-INF-LNX-ROOT</li><li>HK-PRD-DBA-ORA-SYS</li><li>サーバ専用のSafe「HK-WEB03」を新規作成</li></ul>
+<div class="feedback">本番・インフラ課・Linux rootという「使う人と使い方」が既存Safeと一致するため、HK-PRD-INF-LNX-ROOTに格納します。サーバ1台ごとのSafeは管理不能になるため避けます（第6章）。</div>
+</div>
+
+<div class="cq" data-type="multi" data-pts="20" data-correct="0,1">
+<div class="cq-h">Q2. <code>GG_PAM_INF_USERS</code> に付与すべきSafe権限をすべて選んでください。</div>
+<ul class="cq-opts"><li>List accounts</li><li>Use accounts</li><li>Retrieve accounts</li><li>Manage Safe members</li><li>Delete accounts</li></ul>
+<div class="feedback">PSM経由で使うだけなので「List＋Use」で十分です。Retrieveはパスワードが見えてしまい、Manage Safe membersやDeleteは利用者に不要な管理権限です（第6章）。</div>
+</div>
+
+<div class="cq" data-type="single" data-pts="10" data-correct="2">
+<div class="cq-h">Q3. CPMがrootのパスワードを変更できるようにするために必要な設定は？</div>
+<ul class="cq-opts"><li>rootの直接SSHを許可するようインフラ課に依頼する</li><li>Masterユーザーを関連付ける</li><li>opsadminをLogon Accountとして関連付ける</li><li>Retrieve権限をCPMに付与する</li></ul>
+<div class="feedback">rootの直接SSHが禁止されている場合は、Logon Account（opsadmin）でログインしてから切り替えて変更します。セキュリティ設定を緩める必要はありません（第7章）。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q4. 登録作業を正しい順に並べてください。</div>
+<ol class="cq-order">
+<li>依頼内容（対象・利用者・依存先の有無）を確認する</li>
+<li>opsadminをLogon Accountとして先に登録する</li>
+<li>rootをプラットフォーム・Safeを指定して登録し、Logon Accountを関連付ける</li>
+<li>CPMで検証（Verify）し、接続情報が正しいことを確認する</li>
+<li>CPMでパスワードを変更（Change）する</li>
+<li>依頼者へ完了連絡し、PSM経由での接続確認をしてもらう</li>
+</ol>
+<div class="feedback">確認→関連アカウント登録→対象登録→検証→変更→完了連絡の順です。検証で接続情報の誤りを潰してから変更します（第7・8章）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="40">
+<div class="cq-h">Q5.（記述）登録直後にパスワードを変更すべき理由と、変更前に関係者へ伝えるべきことを書いてください。</div>
+<ul class="rubric">
+<li data-pts="10">構築ベンダー・構築担当など、現在のパスワードを知っている人がいるため、変更しないと統制が効かないことに触れている</li>
+<li data-pts="10">変更後はCyberArk（PSM）経由でしか使えなくなることを関係者に周知する、と書いている</li>
+<li data-pts="10">rootのパスワードを使っている依存先（スクリプト・ジョブ等）がないか事前に確認する、と書いている</li>
+<li data-pts="10">変更日時・問い合わせ先・切り戻し（トラブル時の連絡）方法などを伝える、と書いている</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>現在のrootパスワードは構築ベンダーと構築担当3名が知っており、登録しただけでは「CyberArkを通さず使える人」が残るため、登録直後にCPMで変更して旧パスワードを無効化する。変更前に、インフラ課と構築ベンダーへ「変更日時」「以降はPVWA/PSM経由で利用すること」「rootのパスワードを使うスクリプトやジョブがあれば事前に申し出ること」「トラブル時の連絡先」を周知する。</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== B2 ===================== -->
+<details class="case" data-case="B2" id="case-B2">
+<summary><span class="chip ok">基本</span><h3>B2. 月曜朝のCPM検証エラー</h3><span class="chip">関連：7・8・12章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>月曜の朝、日次チェックで次のエラーを見つけました。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>アカウント</th><th>アドレス</th><th>状態</th><th>最終エラー</th></tr></thead>
+<tbody><tr><td>Administrator</td><td>hk-fs01（10.30.3.31）</td><td>Verify失敗（土曜 02:00〜 連続）</td><td>認証失敗（ユーザー名またはパスワードが正しくない）</td></tr></tbody>
+</table></div>
+<ul class="small">
+<li>同じCPMが管理する他のWindowsサーバ（約200台）は正常</li>
+<li>金曜夜に保守ベンダーが <code>hk-fs01</code> のOS再構築（バックアップからの復元）を実施したと、変更管理の記録にある</li>
+<li>プラットフォームでは「不一致時の自動調整」は無効。Reconcile Accountは関連付け済み</li>
+</ul>
+<script class="dg" type="application/json">
+{"w":760,"h":200,"caption":"図：B2の関係図",
+"nodes":[
+{"id":"cpm","x":20,"y":120,"w":150,"h":60,"label":"CPM","sub":"hk-cpm01","kind":"comp"},
+{"id":"v","x":300,"y":10,"w":160,"h":60,"label":"Vault","sub":"金曜時点のPW","kind":"vault"},
+{"id":"t","x":590,"y":120,"w":150,"h":60,"label":"hk-fs01","sub":"復元＝古いPW?","kind":"target"}],
+"edges":[{"from":"cpm","to":"t","label":"Verify → 認証失敗"},{"from":"v","to":"cpm","label":"PW取得"}]}
+</script>
+
+<div class="cq" data-type="single" data-pts="15" data-correct="1">
+<div class="cq-h">Q1. 最も可能性の高い原因は？</div>
+<ul class="cq-opts"><li>CPMとVault間のTCP 1858がFWで遮断された</li><li>バックアップから復元したことで、ターゲット側のパスワードが復元時点の古い値に戻り、Vaultの値と不一致になった</li><li>Safe名が命名規則に違反している</li><li>PSMの録画容量が不足している</li></ul>
+<div class="feedback">他の200台が正常なのでCPMやVault通信の問題ではありません。「認証失敗」かつ直前にバックアップ復元があることから、パスワードの不一致が最有力です（第8章）。</div>
+</div>
+
+<div class="cq" data-type="multi" data-pts="25" data-correct="0,2,3">
+<div class="cq-h">Q2. 適切な対応をすべて選んでください。</div>
+<ul class="cq-opts"><li>ターゲット側でAdministratorがロックされていないか確認する</li><li>検証間隔を1分に短縮して自動で直るのを待つ</li><li>Reconcile（調整）を手動で実行して同期を回復する</li><li>復元作業の手順に「CyberArk管理アカウントの調整」を追加するよう、変更管理プロセスへフィードバックする</li><li>Administratorを一旦CyberArkから削除して登録し直す</li></ul>
+<div class="feedback">ロック確認→手動Reconcile→再発防止のプロセス改善が正しい流れです。検証の連打はロックアウトを招き、削除・再登録は履歴が途切れるため不要です（第8章）。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. 対応の順序を並べてください。</div>
+<ol class="cq-order">
+<li>影響範囲を確認する（エラーは hk-fs01 の1件のみか）</li>
+<li>変更管理記録とエラー内容から原因の仮説を立てる</li>
+<li>ターゲットのロック状態を確認する</li>
+<li>手動でReconcileを実行する</li>
+<li>Verifyで同期回復を確認する</li>
+<li>報告と再発防止策の提案を行う</li>
+</ol>
+<div class="feedback">範囲確認→仮説→安全確認（ロック）→対処→確認→報告・再発防止、が障害対応の型です（第15章）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="40">
+<div class="cq-h">Q4.（記述）上長（山本さん）への報告文を書いてください。事象・原因・対応・再発防止を含めてください。</div>
+<ul class="rubric">
+<li data-pts="10">事象（いつから・どのアカウントで・何のエラーか・影響範囲が1台であること）を書いている</li>
+<li data-pts="10">原因（バックアップ復元によりパスワードが古い値に戻り不一致）を根拠とともに書いている</li>
+<li data-pts="10">対応（ロック確認、Reconcile実行、Verifyでの確認結果）を書いている</li>
+<li data-pts="10">再発防止（復元・再構築手順へのCyberArk調整手順の追加、または自動調整の有効化の検討）を書いている</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>【事象】土曜02:00以降、hk-fs01のAdministratorでCPMの検証が認証失敗。他の約200台は正常で影響は1台のみ。【原因】金曜夜の保守ベンダーによるOS再構築でバックアップから復元され、パスワードが復元時点の古い値に戻ったため、Vaultの値と不一致になったと判断。【対応】ロックされていないことを確認のうえ手動でReconcileを実行し、Verifyが成功したことを確認済み。【再発防止】サーバの復元・再構築手順に「CyberArk管理アカウントのReconcile実施」を追加するよう変更管理へ提案。あわせて、このプラットフォームで不一致時の自動調整を有効化するかを検討したい。</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== B3 ===================== -->
+<details class="case" data-case="B3" id="case-B3">
+<summary><span class="chip ok">基本</span><h3>B3. 保守委託先によるOracle作業</h3><span class="chip">関連：6・9・10章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>保守委託先「ネクスト保守サービス（架空）」の小林さんが、来週の土曜 22:00〜24:00 に本番DB <code>hk-db01</code> のパッチ適用を行います。情報セキュリティ部の森課長から次の要件が示されました。</p>
+<ul class="small">
+<li>作業ごとにDB課長の承認を得ること</li>
+<li>委託先にパスワードを知らせないこと</li>
+<li>作業内容を後から確認できるようにすること</li>
+<li>作業時間帯以外は使えないようにすること</li>
+<li>作業後、SYSTEMアカウントのパスワードが漏れていても使えない状態にすること</li>
+</ul>
+
+<div class="cq" data-type="multi" data-pts="25" data-correct="0,1,3,4">
+<div class="cq-h">Q1. 要件を満たすために有効化すべきルール・機能をすべて選んでください。</div>
+<ul class="cq-opts"><li>二重承認（Dual Control）＋利用時間帯の指定</li><li>PSM経由の接続と録画</li><li>委託先へのRetrieve権限付与</li><li>理由の入力必須（作業チケット番号）</li><li>作業後のパスワード変更（ワンタイム、またはCPMによる即時変更）</li></ul>
+<div class="feedback">承認・時間帯、PSM録画、理由入力、作業後の変更が要件に対応します。Retrieveは「パスワードを知らせない」に反します（第9・10章）。</div>
+</div>
+
+<div class="cq" data-type="single" data-pts="15" data-correct="3">
+<div class="cq-h">Q2. 委託先用ADグループ（<code>GG_PAM_VND_NEXT</code>）に付与するSafe権限として最も適切なのは？</div>
+<ul class="cq-opts"><li>List＋Retrieve</li><li>Manage Safe＋Use</li><li>Access Safe without confirmation＋Use</li><li>List＋Use</li></ul>
+<div class="feedback">接続のみ許可し、承認を迂回しないよう「Access Safe without confirmation」は付けません。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. 当日の流れを並べてください。</div>
+<ol class="cq-order">
+<li>小林さんが理由（チケット番号）と時間帯を入力して利用申請</li>
+<li>DB課長が申請内容を確認して承認</li>
+<li>指定時間帯に小林さんがPSM経由で接続（録画開始）</li>
+<li>作業終了後、セッションを終了して返却</li>
+<li>CPMがSYSTEMのパスワードを変更</li>
+<li>森課長（または監査担当）が録画・操作ログを事後確認</li>
+</ol>
+<div class="feedback">申請→承認→接続（録画）→返却→変更→事後確認の流れです（第9章 図9-1）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="40">
+<div class="cq-h">Q4.（記述）小林さんから「パスワードを教えてもらえれば手元のツールで作業できて早いのですが」と言われました。どう説明しますか？</div>
+<ul class="rubric">
+<li data-pts="10">パスワードを渡すと、作業後も知っている人が残り、統制や監査が効かなくなることを説明している</li>
+<li data-pts="10">PSM経由なら録画が残り、万一のトラブル時に委託先側の正当性を証明する材料にもなる（双方の保護）ことに触れている</li>
+<li data-pts="10">社内規程・セキュリティ要件として決まっていることを丁寧に伝えている</li>
+<li data-pts="10">代替案（PSMで手元ツールに近い接続コンポーネントを用意する、HTML5 Gatewayの利用など）を提示している</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>「パスワードをお渡しすると、作業後も知っている方が社外に残ってしまい、当社の規程上それができません。PSM経由の作業は録画が残るため、万一障害が起きたときに小林さんの作業が正しかったことを証明する材料にもなります。普段お使いのツールに近い接続方法をPSMで用意できるか確認しますので、必要なツールを教えてください。ブラウザだけで接続できる方式もあります。」</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== B4 ===================== -->
+<details class="case" data-case="B4" id="case-B4">
+<summary><span class="chip ok">基本</span><h3>B4. Privilege Cloud：週明けにコネクタが切断</h3><span class="chip">関連：5・8・10・15章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>ヒカリ精機の工場部門は Privilege Cloud を利用しています（推奨構成：コネクタ <code>hk-conn01</code>／<code>hk-conn02</code> に Connector Management エージェント＋PSM、パスワード変更は Secrets Rotation Service）。月曜の朝、次の状態になっていました。</p>
+<ul class="small">
+<li>Connector Management の画面で、2台のコネクタが両方とも「切断」表示</li>
+<li>PSM経由の接続が全員失敗。パスワードの変更・検証も週末から全件失敗</li>
+<li>Privilege Cloud ポータルへのログイン（Identity）は正常</li>
+<li>変更管理の記録：土曜にネットワーク部門が「インターネット向け通信を新しいプロキシに集約し、許可はHTTPS（443）のみに統一」する作業を実施。新プロキシは別の公開IPアドレスから外へ出る</li>
+</ul>
+<script class="dg" type="application/json">
+{"w":780,"h":190,"caption":"図：B4の状況",
+"zones":[{"x":10,"y":10,"w":360,"h":170,"label":"工場ネットワーク"},{"x":530,"y":10,"w":240,"h":170,"label":"Privilege Cloud（SaaS）"}],
+"nodes":[
+{"id":"c","x":30,"y":70,"w":150,"h":70,"label":"hk-conn01/02","sub":"CM Agent＋PSM","kind":"comp"},
+{"id":"px","x":220,"y":70,"w":130,"h":70,"label":"新プロキシ","sub":"443のみ許可\n公開IPが変更","kind":"threat"},
+{"id":"pc","x":560,"y":70,"w":190,"h":70,"label":"Privilege Cloud","sub":"Vault（1858）／API（443）","kind":"vault"}],
+"edges":[{"from":"c","to":"px"},{"from":"px","to":"pc","label":"1858は? 送信元IPは?","dashed":true}]}
+</script>
+
+<div class="cq" data-type="single" data-pts="15" data-correct="2">
+<div class="cq-h">Q1. 最も可能性の高い原因は？</div>
+<ul class="cq-opts"><li>Identityの障害でログインできないため</li><li>SaaS側のVaultが故障したため</li><li>プロキシ変更により、コネクタからの TCP 1858 の外向き通信が遮断された／送信元の公開IPが変わり、SaaS側の許可リストと一致しなくなった</li><li>Master Policyの変更間隔が短すぎるため</li></ul>
+<div class="feedback">ポータルへのログインは正常で、コネクタだけが切れています。公式要件ではコネクタは443に加えてTCP 1858の外向き通信が必要で、SaaS側は届け出た送信元IPからの通信だけを許可します。「443のみ」「公開IPの変更」の両方が当てはまります（第5章）。</div>
+</div>
+
+<div class="cq" data-type="multi" data-pts="25" data-correct="0,1,3">
+<div class="cq-h">Q2. 切り分け・対応として適切なものをすべて選んでください。</div>
+<ul class="cq-opts"><li>コネクタからVaultバックエンドの1858番ポートへの疎通を確認する（例：<code>Test-NetConnection &lt;宛先&gt; -Port 1858</code>）</li><li>新しい送信元の公開IPアドレスを確認し、テクニカルサポートへ許可リストの更新を依頼する</li><li>インターネットからコネクタへのインバウンド3389を開放する</li><li>ネットワーク部門と、宛先を限定した1858番の外向き許可（またはプロキシの経路設定）を合意する</li><li>コネクタを削除してSafeを作り直す</li></ul>
+<div class="feedback">外向き1858の疎通確認、送信元IPの届け出、ネットワーク部門との許可設定が正しい対応です。インバウンド開放は不要かつ危険で、Safeの作り直しは無関係です。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. 対応の順序を並べてください。</div>
+<ol class="cq-order">
+<li>影響範囲を確認する（全コネクタ・全機能か、ポータルは正常か）</li>
+<li>変更管理の記録から直前の変更（プロキシ集約）を特定する</li>
+<li>コネクタからの外向き通信（443・1858）と送信元IPを確認する</li>
+<li>ネットワーク部門に許可設定を、テクニカルサポートに送信元IPの更新を依頼する</li>
+<li>Connector Managementで接続回復を確認し、PSM接続とパスワード検証を試す</li>
+<li>報告し、ネットワーク変更時のチェック項目にCyberArkの通信要件を加える</li>
+</ol>
+<div class="feedback">範囲確認→直前の変更→仮説の検証→関係者への依頼→回復確認→再発防止、の型です（第15章）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="40">
+<div class="cq-h">Q4.（記述）再発防止策を、ネットワーク部門・PAMチーム双方の観点で書いてください。</div>
+<ul class="rubric">
+<li data-pts="10">ネットワーク変更の事前レビューに、CyberArkコネクタの通信要件（443・1858、TLS 1.2以上、宛先）をチェック項目として登録する</li>
+<li data-pts="10">送信元の公開IPを変える変更は、事前にテクニカルサポートへ届け出る手順にする</li>
+<li data-pts="10">Connector Managementのコネクタ状態や、パスワード変更・検証の失敗を監視し、早期に通知されるようにする</li>
+<li data-pts="10">コネクタの冗長化を、同じ経路に依存しない形で検討する（2台が同じプロキシ経由だと同時に止まる）</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>ネットワーク部門の変更レビューに「Privilege Cloudコネクタの外向き要件（443・1858、TLS 1.2以上、宛先）」と「送信元公開IPの変更時はテクニカルサポートへ事前届け出」を追加する。PAMチームは、Connector Managementのコネクタ状態とパスワード変更・検証の失敗を監視して即時に通知されるようにする。また、2台のコネクタが同じプロキシ経路に依存していたため、経路の冗長化も検討する。</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== A1 ===================== -->
+<details class="case" data-case="A1" id="case-A1">
+<summary><span class="chip warn">応用</span><h3>A1. 深夜2時のPTAアラート</h3><span class="chip">関連：10・12・14・15章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>水曜 02:13、PTAから高リスクアラートがSOCに通知されました。オンコールの山本さんと高橋さんが対応します。</p>
+<pre><code>[PTA] Suspected credentials theft
+ Account : HIKARI\adm-backup（ドメイン管理者権限を持つバックアップ用アカウント／CyberArk管理対象）
+ Source  : 10.30.5.77（営業部のPC hk-pc-0577）
+ Target  : hk-ad01（10.30.0.10）
+ Detail  : ログオンの直前にVaultからの取り出し記録なし</code></pre>
+<ul class="small">
+<li><code>adm-backup</code> はバックアップサーバのサービスでも使われている（依存先として登録済み）</li>
+<li>PTAの自動対応（自動ローテーション）は、まだ「通知のみ」の設定</li>
+<li>営業部PCから管理者アカウントでDCにログオンする業務は存在しない</li>
+</ul>
+<script class="dg" type="application/json">
+{"w":760,"h":190,"caption":"図：A1の状況",
+"nodes":[
+{"id":"pc","x":10,"y":65,"w":160,"h":60,"label":"hk-pc-0577","sub":"営業部PC 10.30.5.77","kind":"threat"},
+{"id":"dc","x":340,"y":65,"w":160,"h":60,"label":"hk-ad01","sub":"ドメインコントローラ","kind":"target"},
+{"id":"pta","x":580,"y":10,"w":160,"h":60,"label":"PTA","sub":"窃取の疑い","kind":"threat"},
+{"id":"v","x":580,"y":120,"w":160,"h":60,"label":"Vault","sub":"取り出し記録なし","kind":"vault"}],
+"edges":[{"from":"pc","to":"dc","label":"adm-backup","ly":-10},{"from":"dc","to":"pta","label":"ログ"},{"from":"v","to":"pta","label":"照合"}]}
+</script>
+
+<div class="cq" data-type="multi" data-pts="20" data-correct="0,1,3">
+<div class="cq-h">Q1. 初動として適切なものをすべて選んでください。</div>
+<ul class="cq-opts"><li>CyberArkからadm-backupのパスワードを即時変更（依存先も更新される設定を確認）</li><li>SOC・セキュリティ責任者へ報告し、hk-pc-0577のネットワーク隔離を依頼する</li><li>朝になってから営業部に確認する</li><li>証拠保全のため、PTA・Vault・DCのログや該当時間帯の記録を確保する</li><li>adm-backupをCyberArkの管理対象から外して手動管理にする</li></ul>
+<div class="feedback">盗まれた可能性のある資格情報の無効化（ローテーション）、端末の隔離、報告、証拠保全が初動です。待つ・管理から外すは被害拡大につながります（第12章）。</div>
+</div>
+
+<div class="cq" data-type="single" data-pts="10" data-correct="2">
+<div class="cq-h">Q2. パスワード即時変更の前に必ず確認すべきことは？</div>
+<ul class="cq-opts"><li>録画の解像度</li><li>Safe名の長さ</li><li>依存先（バックアップサービス）が併せて更新される設定になっているか</li><li>PVWAの表示言語</li></ul>
+<div class="feedback">依存先が更新されないと、変更後にバックアップが失敗します。登録済みでも動作確認は必要です（第7章）。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. インシデント対応の大きな流れを並べてください。</div>
+<ol class="cq-order">
+<li>検知・トリアージ（アラート内容の確認と重大度判断）</li>
+<li>封じ込め（資格情報の無効化、端末隔離）</li>
+<li>証拠保全と調査（侵入経路・影響範囲の特定）</li>
+<li>根絶（マルウェア除去、不要な権限・アカウントの削除）</li>
+<li>復旧（業務・サービスの正常化と監視強化）</li>
+<li>事後対応（報告、再発防止策の実施）</li>
+</ol>
+<div class="feedback">一般的なインシデント対応の流れです。CyberArkは「封じ込め（ローテーション・セッション停止）」と「調査（ログ・録画）」で特に力を発揮します。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="50">
+<div class="cq-h">Q4.（記述）なぜadm-backupの資格情報が営業部PCで使われ得たのか、考えられる原因と、CyberArk製品群を使った中長期の再発防止策を書いてください。</div>
+<ul class="rubric">
+<li data-pts="10">原因仮説：管理者がこのPCや他の端末でadm-backupを使った／スクリプトやバックアップ設定に平文で残っていた／メモリ上のハッシュ等が窃取された、などを挙げている</li>
+<li data-pts="10">サービス用アカウントを人が対話ログオンに使えない設計（ログオン制限・用途分離）に触れている</li>
+<li data-pts="10">PTAの自動対応（自動ローテーション・セッション停止）の有効化を挙げている</li>
+<li data-pts="10">EPM等で端末のローカル管理者権限を除去し、資格情報窃取対策を行うことを挙げている</li>
+<li data-pts="10">経路の一本化（DCへの管理ログオンはPSM等からのみ）やZSP化など、常設特権・抜け道を減らす施策を挙げている</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>原因として、①過去に管理者が端末上でadm-backupを使い、資格情報がキャッシュ・メモリに残っていた、②バックアップ設定やスクリプトにパスワードが平文で書かれていた、③営業部PCがマルウェアに感染しハッシュ等が窃取された、が考えられる。再発防止として、(a) サービス用アカウントは対話ログオンを禁止し、人の管理作業用アカウントと分離する、(b) PTAの自動ローテーションを有効化し、検知から無効化までの時間を短縮する、(c) EPMで端末のローカル管理者権限を除去し資格情報窃取対策を適用する、(d) DCへの管理ログオンはPSM経由のみに制限（経路の一本化）し、可能なものはJIT/ZSP化して常設特権を減らす。</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== A2 ===================== -->
+<details class="case" data-case="A2" id="case-A2">
+<summary><span class="chip warn">応用</span><h3>A2. Self-HostedからPrivilege Cloudへの移行設計</h3><span class="chip">関連：4・5・11・15章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>ヒカリ精機は、サポート期限とインフラ運用負荷を理由に、現行のPAM Self-HostedからPrivilege Cloudへの移行を検討しています。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>現状・要件</th></tr></thead>
+<tbody>
+<tr><td>拠点</td><td>本社DC（10.10.0.0/16）と工場DC（10.50.0.0/16）。工場から本社への回線は細い</td></tr>
+<tr><td>管理対象</td><td>約3,000アカウント（Windows・Linux・Oracle・NW機器）</td></tr>
+<tr><td>認証</td><td>現行はLDAP（オンプレAD）＋RADIUS MFA。全社では Entra ID によるSSOを推進中</td></tr>
+<tr><td>監査要件</td><td>セッション録画を1年間参照可能にすること</td></tr>
+<tr><td>ネットワーク</td><td>インターネットへのアウトバウンドHTTPS（443）はプロキシ経由で許可可能。それ以外のポートの外向き通信は現在すべて禁止。インバウンドは不可</td></tr>
+</tbody></table></div>
+
+<div class="cq" data-type="multi" data-pts="20" data-correct="0,1,4">
+<div class="cq-h">Q1. 移行後もヒカリ精機側（オンプレ）に配置・運用するものをすべて選んでください。</div>
+<ul class="cq-opts"><li>CPM・PSMを載せたコネクタサーバ</li><li>Linux向けのPSM for SSH（SSHセッションを中継する場合）</li><li>Digital Vault</li><li>Vault の DR サーバ</li><li>Secure Tunnel・Identity Connector 等のオンプレ連携コンポーネント（必要に応じて）</li></ul>
+<div class="feedback">VaultとそのDRはCyberArkが運用します。顧客側にはコネクタ（CPM・PSM）、必要に応じてPSM for SSHやオンプレ連携のコンポーネントを置きます（第5章）。</div>
+</div>
+
+<div class="cq" data-type="single" data-pts="15" data-correct="1">
+<div class="cq-h">Q2. 工場DCのターゲットへの対応として最も適切な設計は？</div>
+<ul class="cq-opts"><li>本社のコネクタから細い回線越しにすべて管理する</li><li>工場DCにもコネクタ（CPM・PSM）を配置し、工場のSafeの担当にする</li><li>工場のターゲットは管理対象から外す</li><li>工場のFWでインバウンドを開放し、SaaSから直接接続させる</li></ul>
+<div class="feedback">ターゲットに近い場所にコネクタを置くのが基本です。インバウンド開放は不要かつ不適切です（第5・8章）。</div>
+</div>
+
+<div class="cq" data-type="order" data-pts="20">
+<div class="cq-h">Q3. 移行プロジェクトの進め方を並べてください。</div>
+<ol class="cq-order">
+<li>現行環境の棚卸し（Safe・プラットフォーム・カスタム設定・連携・録画量）</li>
+<li>移行後の設計（認証方式、コネクタ配置、ネットワーク要件の確認）</li>
+<li>Privilege Cloud環境とコネクタの構築、認証連携の設定</li>
+<li>パイロット移行（一部のSafe・利用者で検証）</li>
+<li>本移行（ウェーブ単位）と利用者の切替・周知</li>
+<li>旧環境の停止計画（録画データ参照の扱いを含む）</li>
+</ol>
+<div class="feedback">棚卸し→設計→構築→パイロット→本移行→旧環境停止の順で、並行稼働期間とロールバック計画を設けます。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="45">
+<div class="cq-h">Q4.（記述）移行の主なリスクと、その対策を3つ以上挙げてください。</div>
+<ul class="rubric">
+<li data-pts="9">認証方式の変更（LDAP＋RADIUS → Identity／Entra ID連携）に伴う利用者の混乱やMFA要件の確認、緊急用ログイン経路の設計に触れている</li>
+<li data-pts="9">カスタムプラットフォーム・プラグイン・連携（チケット連携、CP/CCP、API連携）の互換性確認に触れている</li>
+<li data-pts="9">旧環境の録画データ（1年参照要件）の扱い（旧環境の参照期間の確保・保管方法）に触れている</li>
+<li data-pts="9">コネクタには443だけでなくTCP 1858の外向き通信が必要なこと（現状ポリシーでは不足）、プロキシ・TLS検査の扱い、送信元公開IPの届け出に触れている</li>
+<li data-pts="9">並行稼働期間中にCPMが新旧両方から同じアカウントを変更しないよう、管理の切替タイミングを制御することに触れている</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>①認証の変更：Entra IDとのSAML連携に切り替えるため、パイロットでMFAと権限マッピングを検証し、IdP障害時の緊急ログイン経路を用意する。②互換性：カスタムプラットフォームや連携（CCP利用アプリ、ITSM連携、APIスクリプト）を棚卸しし、移行先での対応を事前検証する。③録画：旧環境の録画は1年参照要件を満たすまで参照手段を残す（旧環境の縮退運用や保管方法を決める）。④通信：コネクタは443に加えてTCP 1858の外向き通信が必要だが、現行ポリシーは443以外を禁止しているため、ネットワーク部門と例外（宛先を限定した1858許可）を事前に合意する。あわせてプロキシ・TLS検査の扱いを確認し、送信元の公開IPを固定してテクニカルサポートへ届け出る。⑤二重管理：並行稼働中に新旧のCPMが同じアカウントを変更しないよう、ウェーブ単位で旧環境側の自動管理を停止してから新環境で有効化する。</p>
+</div>
+</div>
+</div>
+</details>
+
+<!-- ===================== A3 ===================== -->
+<details class="case" data-case="A3" id="case-A3">
+<summary><span class="chip warn">応用</span><h3>A3. アプリのパスワード直書きをなくす</h3><span class="chip">関連：6・8・13章</span></summary>
+<div class="case-body">
+<h4>状況</h4>
+<p>内部監査で「アプリの設定ファイルにDBパスワードが平文で書かれている」と指摘されました。開発チームの中村さんと一緒に、対応方針を決めます。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>システム</th><th>特徴</th></tr></thead>
+<tbody>
+<tr><td>販売アプリ（hk-app01）</td><td>オンプレのJavaアプリ。サーバにエージェント導入可。DB停止時もアプリは極力止めたくない</td></tr>
+<tr><td>生産管理パッケージ（hk-mes01）</td><td>ベンダー製アプライアンス。OSに手を入れられない。HTTPSでの外部取得機能あり</td></tr>
+<tr><td>新受注サービス</td><td>AWS上のKubernetes（EKS）で動くマイクロサービス群。CI/CDで頻繁にデプロイ</td></tr>
+<tr><td>請求バッチ（AWS Lambda）</td><td>AWS Secrets Managerから読む実装済み。コード改修は避けたい</td></tr>
+</tbody></table></div>
+
+<div class="cq" data-type="match" data-pts="20" data-options="CP（Credential Provider）|CCP（Central Credential Provider）|Secrets Manager|Secrets Hub">
+<div class="cq-h">Q1. 各システムに最も適した方式を選んでください。</div>
+<ul class="cq-match">
+<li data-answer="0">販売アプリ（hk-app01）</li>
+<li data-answer="1">生産管理パッケージ（hk-mes01）</li>
+<li data-answer="2">新受注サービス（EKS）</li>
+<li data-answer="3">請求バッチ（Lambda＋AWS Secrets Manager）</li>
+</ul>
+<div class="feedback">エージェント可＋高可用→CP、エージェント不可→CCP、Kubernetes→Secrets Manager、クラウド標準ストアをそのまま使う→Secrets Hub（第13章）。</div>
+</div>
+
+<div class="cq" data-type="multi" data-pts="20" data-correct="0,1,3">
+<div class="cq-h">Q2. 販売アプリ用Safe（HK-PRD-APP-ORA-APPUSR）の設計として適切なものをすべて選んでください。</div>
+<ul class="cq-opts"><li>アプリのApplication IDにList・Retrieveを付与する</li><li>Credential Providerのユーザーに、取得に必要な権限（Retrieve・List・View Safe members等）を付与する</li><li>開発者全員にRetrieveを付与し、障害時に見られるようにする</li><li>Application IDの認証条件に、許可マシン（10.30.1.21）やOSユーザー等を設定する</li><li>アプリが確実に取得できるよう、アプリ認証の条件は設定しない</li></ul>
+<div class="feedback">アプリとProviderに必要最小限の権限を付け、アプリ認証条件で「本物のアプリ」だけが取得できるようにします。人にはRetrieveを付けません（第13章）。</div>
+</div>
+
+<div class="cq" data-type="single" data-pts="10" data-correct="0">
+<div class="cq-h">Q3. EKS上のサービスが「シークレット・ゼロ問題」を回避して認証する方法として適切なのは？</div>
+<ul class="cq-opts"><li>Kubernetesのサービスアカウント等、プラットフォームが発行するIDで認証する</li><li>APIキーをコンテナイメージに埋め込む</li><li>環境変数にVaultの管理者パスワードを設定する</li><li>ConfigMapに平文で保存する</li></ul>
+<div class="feedback">ワークロードのIDで認証することで、最初の秘密を埋め込まずに済みます（第13章）。</div>
+</div>
+
+<div class="cq" data-type="essay" data-pts="50">
+<div class="cq-h">Q4.（記述）販売アプリをCP方式へ切り替え、appuserのパスワードをCPMで定期変更するまでの導入計画を、業務停止を避ける観点で書いてください。</div>
+<ul class="rubric">
+<li data-pts="10">検証環境での事前検証（取得処理・エラー処理・性能）に触れている</li>
+<li data-pts="10">アプリ側の改修（設定ファイルからの削除、取得処理の実装、取得失敗時のリトライ・キャッシュの扱い）に触れている</li>
+<li data-pts="10">パスワード変更時の接続プール・既存セッションへの影響（再取得のタイミング、変更時間帯の制限）に触れている</li>
+<li data-pts="10">切替後に旧パスワードを変更し、設定ファイルやGit履歴に残った値を無効化することに触れている</li>
+<li data-pts="10">監視（取得失敗・CPMエラー）と、問題発生時の切り戻し手順・連絡体制に触れている</li>
+</ul>
+<div class="feedback">
+<p><strong>模範解答例：</strong>①検証環境にCPを導入し、アプリの取得処理（起動時・接続エラー時の再取得、取得失敗時のリトライ）を実装して性能と障害時動作を確認する。②本番ではApplication IDと認証条件、Safe権限を設定し、設定ファイルからパスワードを削除したリリースを業務影響の少ない時間帯に適用する。③切替完了後、CPMでappuserのパスワードを変更し、設定ファイルやGit履歴に残っていた旧パスワードを無効化する。④定期変更は業務時間外に限定し、接続プールが新パスワードを再取得できることを確認する。⑤取得失敗やCPMエラーを監視し、問題時の切り戻し手順と開発・運用の連絡体制を事前に決めておく。</p>
+</div>
+</div>
+</div>
+</details>
+
+</div></main>
+<script src="assets/cases.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

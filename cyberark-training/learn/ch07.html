@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch07.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第7章 アカウントとプラットフォーム</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 07｜設計・設定</div>
+  <h1>アカウントとプラットフォーム</h1>
+  <p class="lead">アカウントは「管理したい鍵1本1本」、プラットフォームは「その鍵の取扱説明書」です。取扱説明書を正しく選べば、CPMとPSMが正しく動きます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">アカウントの構成要素 → プラットフォームとは → 主な設定項目 → 連携アカウント（Logon / Reconcile）→ 依存先 → アカウント登録（オンボーディング）の流れ</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>アカウント登録に必要な情報（Safe・プラットフォーム・アドレス・ユーザー名・シークレット）を説明できる</li>
+    <li>プラットフォームを「複製してカスタマイズ」する理由を説明できる</li>
+    <li>Logon AccountとReconcile Accountが必要になる場面を説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 75分</span><span class="chip">前提：第6章</span></div>
+</div>
+
+<h2>1. アカウントの構成要素</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>例（hk-web01のroot）</th><th>説明</th></tr></thead>
+<tbody>
+<tr><td>Safe</td><td><code>HK-PRD-INF-LNX-ROOT</code></td><td>格納先＝誰が使えるかが決まる</td></tr>
+<tr><td>Platform</td><td>HK-Unix-SSH-Root（Unix via SSHを複製）</td><td>管理ルールと接続方法が決まる</td></tr>
+<tr><td>Address</td><td><code>hk-web01.hikari.example</code>（10.30.1.11）</td><td>接続先。DNS名推奨</td></tr>
+<tr><td>Username</td><td><code>root</code></td><td>管理対象のユーザー名</td></tr>
+<tr><td>Secret</td><td>パスワード または SSH秘密鍵</td><td>Vaultに暗号化保管される</td></tr>
+<tr><td>Account Name</td><td>自動生成（例：Operating System-HK-Unix-SSH-Root-hk-web01…-root）</td><td>Vault内の識別名</td></tr>
+<tr><td>Linked Accounts</td><td>Logon：<code>opsadmin</code>／Reconcile：調整用アカウント</td><td>管理を補助する別アカウント</td></tr>
+<tr><td>自動管理の状態</td><td>有効／無効（無効時は理由を記録）</td><td>CPMの管理対象かどうか</td></tr>
+</tbody></table></div>
+
+<h2>2. プラットフォームとは</h2>
+<div class="callout analogy"><span class="ttl">家電の「取扱説明書」</span>
+<p>同じ「電源を入れる」でも、テレビと洗濯機では手順が違います。CPMやPSMも、Windowsのローカル管理者とOracleのSYSでは、パスワードの変え方・接続の仕方が違います。<strong>プラットフォームは、ターゲットの種類ごとの取扱説明書</strong>です。</p>
+</div>
+<p>CyberArkには、Windows・Unix/Linux・データベース・ネットワーク機器・クラウドなど、多数のプラットフォームのテンプレートが用意されています。足りないものは公式マーケットプレイス等のプラグインや、独自開発（プラグインの作成）で追加できます。</p>
+
+<h3>主な設定項目</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>設定カテゴリ</th><th>代表的な設定</th></tr></thead>
+<tbody>
+<tr><td>自動パスワード管理</td><td>定期変更の間隔、定期検証の間隔、不一致時に自動で調整（Reconcile）するか、変更時刻の制限（業務時間外のみ等）</td></tr>
+<tr><td>パスワードポリシー</td><td>長さ、大文字・小文字・数字・記号の最低数、使用禁止文字（ターゲットが受け付けない記号の除外）</td></tr>
+<tr><td>接続コンポーネント</td><td>PSM経由で使う接続方式（RDP、SSH、SQLクライアント、Webアプリ等）と、使用するPSMサーバ</td></tr>
+<tr><td>ポリシーの例外</td><td>Master Policyの設定をこのプラットフォームだけ変更（例：本番DBだけ二重承認）</td></tr>
+<tr><td>プラグイン固有の設定</td><td>接続ポート、プロンプト文字列、タイムアウトなど</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">既定プラットフォームは直接いじらず「複製」して使う</span>
+<p>標準テンプレートを直接変更すると、どこを変えたか分からなくなり、バージョンアップ時の比較も困難になります。<strong>「複製 → 自社用の名前を付ける → 変更」</strong>が鉄則です。名前に用途を入れておく（例：<code>HK-Win-Local-PRD</code>）と、棚卸しや調査が楽になります。</p>
+</div>
+<div class="callout danger"><span class="ttl">パスワードポリシーとターゲットの不一致に注意</span>
+<p>ターゲットが受け付けない記号や長さをCPMが生成すると、変更が失敗します。例えば一部のネットワーク機器やアプリでは特定の記号が使えません。プラットフォームの「使用禁止文字」で除外しましょう。</p>
+</div>
+
+<h2>3. 連携アカウント（Linked Accounts）</h2>
+<div class="grid-2">
+<div class="card"><h4>🚪 Logon Account（ログオン用）</h4>
+<p class="small">対象アカウントで<strong>直接ログインできない</strong>ときに使う「入口用」のアカウント。</p>
+<p class="small">例：<code>hk-web01</code> は <code>PermitRootLogin no</code>（rootでの直接SSH禁止）。CPMは一般ユーザー <code>opsadmin</code> でログインし、そこから <code>su</code> でrootになってパスワードを変更する。</p></div>
+<div class="card"><h4>🛠 Reconcile Account（調整用）</h4>
+<p class="small">対象アカウントのパスワードが<strong>Vaultと食い違ったとき</strong>に、強制的にリセットするための高権限アカウント。</p>
+<p class="small">例：Windowsドメインアカウントの調整には、パスワードリセット権限を持つ専用のドメインアカウントを使う。Linuxでは調整用の管理者アカウント（sudo可能）を使う。</p></div>
+</div>
+<div class="callout tip"><span class="ttl">調整用アカウント自体もCyberArkで管理する</span>
+<p>Reconcile Accountは強い権限を持つため、それ自体もSafeに格納してCPMで管理します。ただし「調整用アカウントのパスワードが不一致になると調整できない」ので、<strong>専用Safe・厳格な権限・監視</strong>を設けます。</p>
+</div>
+
+<h2>4. 依存先（Usages / Dependencies）</h2>
+<p>Windowsのサービス、スケジュールタスク、IISのアプリケーションプール、設定ファイルなどが、ある特権アカウントのパスワードを使っている場合があります。パスワードだけ変えると、<mark>それらが起動できなくなり障害</mark>になります。</p>
+<p>CyberArkでは、こうした使用箇所を<strong>依存先</strong>として登録し、CPMがパスワード変更時に併せて更新できます。導入前の調査（どのサービスがどのアカウントで動いているか）が重要です。</p>
+
+<h2>5. アカウント登録（オンボーディング）の方法</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>方法</th><th>向いている場面</th></tr></thead>
+<tbody>
+<tr><td>画面から1件ずつ登録</td><td>少数・試験的な登録</td></tr>
+<tr><td>一括登録（ファイル取り込み）</td><td>導入初期の大量登録</td></tr>
+<tr><td>REST API・自動化ツール</td><td>サーバ構築の自動化と連動して登録（第15章）</td></tr>
+<tr><td>Accounts Discovery ＋ 自動オンボーディングルール</td><td>ネットワーク上の特権アカウントを発見し、ルールに合うものを自動で登録</td></tr>
+</tbody></table></div>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図7-1：画面からLinuxのrootを登録する流れ</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":190,
+"nodes":[
+{"id":"adm","x":10,"y":110,"w":140,"h":60,"label":"アカウント管理者","sub":"高橋さん","kind":"user","s":[1,2,3,4]},
+{"id":"pvwa","x":250,"y":110,"w":140,"h":60,"label":"PVWA","sub":"アカウント追加","kind":"comp","s":[1,2,3,4]},
+{"id":"vault","x":460,"y":110,"w":160,"h":60,"label":"Vault","sub":"HK-PRD-INF-LNX-ROOT","kind":"vault","s":[4,5]},
+{"id":"cpm","x":465,"y":0,"w":150,"h":60,"label":"CPM","kind":"comp","s":[5,6]},
+{"id":"t","x":670,"y":110,"w":120,"h":60,"label":"hk-web01","sub":"10.30.1.11","kind":"target","s":[5,6]}],
+"edges":[
+{"from":"adm","to":"pvwa","label":"①〜③入力","s":[1,2,3]},
+{"from":"pvwa","to":"vault","label":"④保存","s":[4]},
+{"from":"vault","to":"cpm","label":"⑤検証依頼","lx":-40,"ly":4,"s":[5]},
+{"from":"cpm","to":"t","label":"⑤⑥検証・変更","lx":30,"ly":-4,"s":[5,6]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="種別とプラットフォーム選択">「アカウント追加」でシステム種別（Unix）とプラットフォーム（<code>HK-Unix-SSH-Root</code>）を選びます。</li>
+<li data-label="Safe選択">格納先Safe（<code>HK-PRD-INF-LNX-ROOT</code>）を選びます。ここで「誰が使えるか」が決まります。</li>
+<li data-label="接続情報の入力">アドレス <code>hk-web01.hikari.example</code>、ユーザー名 <code>root</code>、現在のパスワードを入力します。</li>
+<li data-label="連携アカウント設定">Logon Account（<code>opsadmin</code>）とReconcile Accountを関連付けて保存します。</li>
+<li data-label="CPMが検証">CPMが登録情報でターゲットに実際にログインできるか検証します。失敗したら入力ミスや通信・権限を確認します。</li>
+<li data-label="初回の変更">運用ルールに従い、登録直後にCPMでパスワードを変更します。<strong>これで「人が知っている古いパスワード」が無効になり、本当の意味で管理下に入ります。</strong></li>
+</ol>
+</figure>
+
+<h2 id="dual">Self-Hosted と Privilege Cloud の違い（この章のポイント）</h2>
+<div class="dual">
+<div class="sh"><h4>🏢 Self-Hosted の場合</h4><ul><li>プラットフォームとCPMプラグインを自社のCPMサーバで管理</li><li>プラグインの改修・追加も自社環境で実施</li></ul></div>
+<div class="pc"><h4>☁ Privilege Cloud の場合</h4><ul><li>プラットフォームの考え方は同じ</li><li>Secrets Rotation Service では、プラグインはCPMと同じものを<strong>サービス側で一元管理</strong>し、エージェントにはキャッシュが配られる</li><li>ローカルでプラグインを編集しても反映はキャッシュのみ。恒久化するにはテクニカルサポートへ送付してバックエンドを更新してもらう</li><li>Secrets Rotation Service はプラットフォームグループ・ローテーショングループに未対応（制限事項）</li></ul></div>
+</div>
+<p class="small muted">出典（2026-10-19確認）：Secrets Rotation Service architecture、Secrets Rotation limitations and behavior changes</p>
+
+<section class="review" id="review">
+<h2>振り返り問題（第7章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. rootでの直接SSHが禁止されたLinuxで、CPMがrootのパスワードを変更するために必要なのは？</p>
+<ul class="rq-opts"><li>Reconcile Accountのみ</li><li>Masterユーザー</li><li>Logon Account（一般ユーザーでログインしてからrootに切り替える）</li><li>PSM for SSHの録画設定</li></ul>
+<div class="rq-exp">Logon Accountで入ってからsu等で切り替えて変更します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. 標準プラットフォームを使うときの推奨手順は？</p>
+<ul class="rq-opts"><li>複製して自社用の名前を付けてから変更する</li><li>標準のものを直接編集する</li><li>使わずに毎回新規作成する</li><li>Masterユーザーで編集する</li></ul>
+<div class="rq-exp">複製してから変更することで、変更点の管理やバージョンアップ時の比較が容易になります。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. Windowsサービスの実行アカウントのパスワードをCPMで変更した直後、サービスが起動しなくなった。最も疑わしい原因は？</p>
+<ul class="rq-opts"><li>Vaultのポート1858が閉じている</li><li>PSMの録画容量不足</li><li>Safe名が長すぎる</li><li>依存先（サービス）が登録されておらず、サービス側のパスワードが更新されていない</li></ul>
+<div class="rq-exp">依存先を登録してCPMに併せて更新させる必要があります。導入前の依存先調査が重要です。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q4. アカウント登録直後にCPMでパスワード変更を行う主な目的は？</p>
+<ul class="rq-opts"><li>Vaultの容量を節約するため</li><li>人が知っている古いパスワードを無効化し、確実に管理下に入れるため</li><li>録画を開始するため</li><li>ライセンスを有効化するため</li></ul>
+<div class="rq-exp">登録時点のパスワードは多くの人が知っている可能性があります。変更して初めて統制が効きます。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

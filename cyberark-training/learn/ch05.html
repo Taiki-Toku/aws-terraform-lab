@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch05.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第5章 Self-HostedとPrivilege Cloud</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 05｜コア構成</div>
+  <h1>Self-HostedとPrivilege Cloud</h1>
+  <p class="lead">同じ「CyberArk PAM」でも、自社で金庫を持つか（Self-Hosted）、金庫を預けるか（Privilege Cloud）で、構成も運用も大きく変わります。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">責任分界の違い → Privilege Cloudの構成（ISPSS・コネクタ・Connector Management・Secure Tunnel）→ コネクタ導入の流れ → 比較と選び方</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>Self-HostedとPrivilege Cloudの責任分界（誰が何を運用するか）を説明できる</li>
+    <li>Privilege Cloudで顧客側に置くもの（コネクタ等）とその役割を説明できる</li>
+    <li>要件に応じてどちらが向いているかを根拠付きで提案できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 60分</span><span class="chip">前提：第3・4章</span></div>
+</div>
+
+<h2>1. 責任分界：誰が何を運用するか</h2>
+<div class="callout analogy"><span class="ttl">自宅の金庫 vs 銀行の貸金庫</span>
+<p><strong>Self-Hosted</strong>は自宅に金庫を買って置くイメージです。金庫の設置場所・メンテナンス・防犯は全部自分の責任ですが、自由度は最大です。<strong>Privilege Cloud</strong>は銀行の貸金庫です。金庫室の警備・保守は銀行（CyberArk）が行い、自分は「出し入れの手続き」と「鍵を使う人の管理」に集中できます。ただし銀行の営業ルール（サービス仕様）には従う必要があります。</p>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>項目</th><th>Self-Hosted</th><th>Privilege Cloud</th></tr></thead>
+<tbody>
+<tr><td>Vaultの構築・堅牢化・パッチ</td><td>顧客</td><td><strong>CyberArk</strong></td></tr>
+<tr><td>Vaultのバックアップ・DR</td><td>顧客</td><td><strong>CyberArk</strong></td></tr>
+<tr><td>Web画面（PVWA相当）</td><td>顧客（IIS上に構築）</td><td><strong>CyberArk</strong>（SaaSの管理画面）</td></tr>
+<tr><td>CPM・PSM・PSM for SSH</td><td>顧客</td><td>顧客（<strong>コネクタサーバ</strong>上で稼働）</td></tr>
+<tr><td>ターゲットとの通信</td><td>顧客ネットワーク内</td><td>顧客ネットワーク内（コネクタから）</td></tr>
+<tr><td>Safe・アカウント・ポリシー設計</td><td>顧客</td><td>顧客</td></tr>
+<tr><td>利用者・権限・承認の運用</td><td>顧客</td><td>顧客</td></tr>
+<tr><td>バージョンアップ</td><td>顧客が計画・実施</td><td>SaaS部分は提供側が更新。コネクタ側は Connector Management に新版が表示されたら管理者が更新を実行</td></tr>
+</tbody></table></div>
+<div class="callout key"><span class="ttl">SaaSでも「設計と運用」は顧客の仕事</span>
+<p>Privilege Cloudにしても、<strong>Safe設計・権限・ポリシー・オンボーディング・承認運用</strong>は顧客側の仕事のままです。第6章以降の内容は、どちらの形態でも必要な知識です。</p>
+</div>
+
+<h2>2. Privilege Cloudの構成</h2>
+<p>Privilege Cloudは、CyberArkのSaaS共通基盤である<strong>Identity Security Platform Shared Services（ISPSS）</strong>上で提供されます。ISPSSは認証（Identity）・管理画面・監査などを複数のSaaS製品で共有する土台です。</p>
+
+<script class="dg" type="application/json">
+{"w":820,"h":380,"title":"Privilege Cloud構成","caption":"図5-1：Privilege Cloud の構成（概念図・ヒカリ精機の例）",
+"zones":[{"x":420,"y":10,"w":390,"h":360,"label":"CyberArk SaaS（ISPSS）"},{"x":10,"y":10,"w":390,"h":360,"label":"顧客ネットワーク（hikari.example）"}],
+"nodes":[
+{"id":"id","x":450,"y":45,"w":160,"h":60,"label":"Identity","sub":"認証・MFA・SSO","kind":"cloud"},
+{"id":"pc","x":630,"y":45,"w":160,"h":60,"label":"Privilege Cloud","sub":"管理画面・ポータル","kind":"cloud"},
+{"id":"v","x":540,"y":170,"w":180,"h":70,"label":"Vault（SaaS）","sub":"CyberArkが運用","kind":"vault"},
+{"id":"cm","x":450,"y":290,"w":340,"h":60,"label":"Connector Management","sub":"コネクタの導入・監視・更新を管理","kind":"cloud"},
+{"id":"u","x":30,"y":45,"w":150,"h":60,"label":"利用者","sub":"ブラウザ","kind":"user"},
+{"id":"con","x":30,"y":170,"w":200,"h":90,"label":"コネクタサーバ","sub":"Connector Mgmt Agent / PSM\n（＋Secure Tunnel）\n（hk-conn01, 02）","kind":"comp"},
+{"id":"ad","x":30,"y":290,"w":130,"h":60,"label":"AD","sub":"hk-ad01","kind":"target"},
+{"id":"t","x":230,"y":290,"w":150,"h":60,"label":"ターゲット","sub":"サーバ/DB","kind":"target"}],
+"edges":[
+{"from":"u","to":"id","label":"HTTPS（ログイン）"},
+{"from":"con","to":"v","label":"アウトバウンド TCP 443 / 1858（TLS 1.2以上）"},
+{"from":"con","to":"cm","dashed":true,"label":"管理用","ly":18},
+{"from":"con","to":"t","label":"変更・中継"},
+{"from":"con","to":"ad","dashed":true,"label":"LDAP等"}]}
+</script>
+
+<div class="table-wrap"><table>
+<thead><tr><th>要素</th><th>場所</th><th>役割</th></tr></thead>
+<tbody>
+<tr><td><strong>Identity（ISPSSの認証基盤）</strong></td><td>SaaS</td><td>Privilege Cloudへのログイン、MFA、社内IdPとのSAML連携</td></tr>
+<tr><td><strong>Privilege Cloud（Vault・ポータル）</strong></td><td>SaaS</td><td>資格情報の保管、Safe・アカウント・ポリシーの管理、録画の保管・再生</td></tr>
+<tr><td><strong>コネクタサーバ</strong></td><td>顧客側</td><td>ターゲットに近いネットワークに置くWindowsサーバ。<strong>推奨構成は Connector Management エージェント＋PSM</strong>（パスワード変更はSaaSのSecrets Rotation Serviceがエージェント経由で実行）。CPM＋PSMを載せる従来構成も選択可。複数台で冗長化</td></tr>
+<tr><td><strong>Secrets Rotation Service／Discovery</strong></td><td>SaaS</td><td>CPMに代わるSaaSのパスワード変更エンジンと、アカウント発見サービス。CPMと同じプラグインを使い、エージェントを通じてターゲットを操作</td></tr>
+<tr><td><strong>PSM for SSH</strong></td><td>顧客側（Linux）</td><td>SSHセッションの中継・記録（必要な場合）</td></tr>
+<tr><td><strong>Connector Management</strong></td><td>SaaS＋顧客側エージェント</td><td>SaaS画面からコネクタの導入・状態監視・更新を行う仕組み</td></tr>
+<tr><td><strong>Secure Tunnel</strong></td><td>顧客側</td><td>SaaSとオンプレ間の暗号化トンネル（オンプレADとのLDAP連携等に利用）</td></tr>
+<tr><td><strong>Identity Connector</strong></td><td>顧客側</td><td>オンプレのADとIdentity（SaaS）をつなぐ</td></tr>
+</tbody></table></div>
+
+<div class="point-box">
+  <div class="big">↗</div>
+  <div><p class="one">コネクタは「内側から外へ」話しかける。外（SaaS）から社内へ穴を開ける必要はない。</p>
+  <p class="small muted">公式の「Outbound traffic network and port requirements」では、コネクタからSaaSへのアウトバウンド通信として <strong>TCP 443（HTTPS：REST/API・証明書検証等）と TCP 1858（Vaultバックエンド）</strong> が挙げられ、通信はすべて TLS 1.2 以上です。宛先の指定はワイルドカードによる動的設定が推奨され、使えない場合はテナント固有のFQDN／IPを許可します。</p></div>
+</div>
+
+<h2>3. コネクタ導入の流れ</h2>
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図5-2：Connector Managementによるコネクタ導入</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":300,
+"nodes":[
+{"id":"adm","x":10,"y":120,"w":150,"h":60,"label":"PAM管理者","sub":"山本さん","kind":"user","s":[1,2]},
+{"id":"cm","x":300,"y":20,"w":200,"h":60,"label":"Connector Management","sub":"SaaS画面","kind":"cloud","s":[1,2,4,5]},
+{"id":"srv","x":300,"y":210,"w":200,"h":70,"label":"コネクタサーバ","sub":"hk-conn01\n10.10.40.11","kind":"comp","s":[2,3,4,5]},
+{"id":"pc","x":620,"y":120,"w":170,"h":60,"label":"Privilege Cloud","sub":"Vault（SaaS）","kind":"vault","s":[4,5]}],
+"edges":[
+{"from":"adm","to":"cm","label":"①コネクタ追加","s":[1]},
+{"from":"cm","to":"srv","label":"②導入スクリプト","off":-14,"lx":-62,"ly":0,"s":[2]},
+{"from":"adm","to":"srv","label":"③スクリプト実行","curve":30,"s":[3]},
+{"from":"srv","to":"cm","label":"④登録・接続","off":-14,"lx":52,"ly":0,"s":[4]},
+{"from":"srv","to":"pc","label":"⑤PSM・変更処理が稼働","s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="コネクタを追加">管理者はSaaSの管理画面でConnector Managementを開き、「コネクタを追加」を選びます。導入先のOSや用途を指定します。</li>
+<li data-label="導入スクリプト生成">画面に導入スクリプトが生成されます。スクリプトには認証用の一時トークンが含まれ、<strong>有効期限が短く設定されています</strong>（期限切れの場合は再生成）。</li>
+<li data-label="サーバで実行">準備したコネクタサーバ（<code>hk-conn01</code>）上で、管理者権限でスクリプトを実行します。Connector Managementのエージェントが導入されます。</li>
+<li data-label="登録・接続">エージェントがSaaSへアウトバウンド接続して登録されます。以後、画面からCPM・PSM等のコンポーネントの導入や状態確認ができるようになります。</li>
+<li data-label="コンポーネント稼働">画面からPSM（従来構成ならCPMも）を導入すると、Privilege Cloudと通信を開始します。推奨構成では、パスワード変更はSaaSのSecrets Rotation Serviceがこのエージェント経由で実行し、PSMがセッションを中継します。冗長化のため2台目（<code>hk-conn02</code>）も同様に導入します。</li>
+</ol>
+</figure>
+<div class="callout danger"><span class="ttl">「HTTPSだけ開ければよい」は誤り</span>
+<p>Privilege Cloudのコネクタは 443 に加えて <strong>TCP 1858</strong> の外向き通信が必要です。プロキシ経由でHTTPSだけを許可している環境では、1858 の扱いを事前にネットワーク担当と決めておかないと、コネクタがVaultに接続できません。また、IdiraはSaaS側で<strong>特定IPからのインバウンドのみ許可</strong>するため、コネクタの<strong>送信元となる公開IPアドレスをテクニカルサポートに届け出る</strong>必要があります（送信元IPは常に同じになるよう経路を固定）。IPv4のみ対応です。</p>
+</div>
+<div class="callout verify"><span class="ttl">確認ポイント</span><p>導入手順・前提条件（OS、.NET、通信要件、トークン有効期限）は更新が頻繁です。必ず最新の「Connector Management」ドキュメントで確認してから作業してください。</p></div>
+
+<div class="callout key"><span class="ttl">Privilege Cloudでの接続方式の選び方</span>
+<p>公式ドキュメントでは、RDP・SSH・データベースへの接続は <strong>SIA（Secure Infrastructure Access）</strong> の利用が推奨されています（軽量なコネクタ、高可用性・負荷分散を内蔵、更新時の停止がほぼない）。Webサイト・クラウドコンソール・ESX/vCenter・ファットクライアントへの接続や高度なカスタマイズが必要な場合は <strong>PSM</strong> を使います。詳しくは第10章・第14章。</p>
+</div>
+
+<h2>4. 比較と選び方</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>観点</th><th>Self-Hosted が向くケース</th><th>Privilege Cloud が向くケース</th></tr></thead>
+<tbody>
+<tr><td>ネットワーク</td><td>インターネット接続が許されない閉域環境</td><td>コネクタからの外向き通信（TCP 443・1858）を許可できる</td></tr>
+<tr><td>規制・データ所在</td><td>資格情報を自社管理下に置くことが規程上必須</td><td>SaaSの認証・リージョンが要件を満たす</td></tr>
+<tr><td>運用体制</td><td>Vault・DR・バージョンアップを担える体制がある</td><td>インフラ運用を減らし、設計・活用に注力したい</td></tr>
+<tr><td>拡張性</td><td>既存の高度なカスタマイズ資産がある</td><td>SIA・SCA・Secrets Hub等のSaaS製品と統合したい</td></tr>
+<tr><td>機能追加</td><td>計画的なバージョンアップで取り込む</td><td>SaaS部分は継続的に機能追加</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="ttl">移行の相談が増えている</span>
+<p>Self-HostedからPrivilege Cloudへの移行案件は増えています。移行では「Safe・アカウント・プラットフォームの移行」「ユーザー認証の切替（LDAP→Identity/SAML）」「録画データの扱い」「並行稼働期間」が主な論点です（ケーススタディ応用編で扱います）。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第5章）</h2>
+<div class="rq" data-correct="2"><p class="rq-q">Q1. Privilege Cloudで、顧客側が運用するものは？</p>
+<ul class="rq-opts"><li>Vaultのパッチ適用</li><li>VaultのDR</li><li>CPM・PSMを載せたコネクタサーバ</li><li>SaaSの管理画面のサーバ</li></ul>
+<div class="rq-exp">Vaultや管理画面はCyberArkが運用し、顧客はコネクタ（CPM・PSM等）を運用します。</div></div>
+<div class="rq" data-correct="0"><p class="rq-q">Q2. コネクタとSaaS間の通信の基本的な考え方は？</p>
+<ul class="rq-opts"><li>コネクタからSaaSへのアウトバウンド通信</li><li>SaaSから社内へのインバウンド通信をFWで開放</li><li>専用線が必須</li><li>コネクタとSaaSは通信しない</li></ul>
+<div class="rq-exp">コネクタから外向き（アウトバウンド）に接続します。公式要件では TCP 443 と TCP 1858 が必要で、TLS 1.2以上です。宛先FQDN等は公式要件で確認します。</div></div>
+<div class="rq" data-correct="3"><p class="rq-q">Q3. Privilege Cloudを採用しても、顧客側に残る仕事は？</p>
+<ul class="rq-opts"><li>Vaultのハードニング</li><li>Vaultのバックアップ</li><li>SaaS管理画面のバージョンアップ</li><li>Safe設計・権限設計・承認運用</li></ul>
+<div class="rq-exp">Safe設計や権限・承認の運用は、提供形態に関係なく顧客の仕事です。</div></div>
+<div class="rq" data-correct="1"><p class="rq-q">Q4. 「インターネット接続が一切許可されない閉域網」の要件に向くのは？</p>
+<ul class="rq-opts"><li>Privilege Cloud</li><li>Self-Hosted</li><li>どちらも利用不可</li><li>Secrets Hub</li></ul>
+<div class="rq-exp">SaaSへのアウトバウンド接続ができない場合はSelf-Hostedが候補になります。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>

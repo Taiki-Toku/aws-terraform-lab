@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja" data-root="../" data-page="learn/ch01.html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第1章 特権IDとPAMの基礎</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main class="main"><div class="content">
+
+<div class="ch-hero">
+  <div class="eyebrow">CHAPTER 01｜基礎</div>
+  <h1>特権IDとPAMの基礎</h1>
+  <p class="lead">CyberArkを学ぶ前に、「何を、なぜ守るのか」をはっきりさせます。ここが腹落ちすると、以降の機能がすべて「理由のある仕組み」に見えてきます。</p>
+  <h4>この章の全体像</h4>
+  <p class="small">特権IDの定義 → 狙われる理由（攻撃の流れ）→ よくある管理不備 → PAMの4つの柱 → CyberArkの位置づけ</p>
+  <h4>この章のゴール</h4>
+  <ul class="goal-list">
+    <li>特権IDの具体例を5つ以上挙げられる</li>
+    <li>攻撃者が特権IDを狙う理由を「侵入→横展開→目的達成」の流れで説明できる</li>
+    <li>PAMの4つの柱（保管・制御・監視・自動化）を説明できる</li>
+  </ul>
+  <div class="ch-meta"><span class="chip acc">目安 60分</span><span class="chip">前提知識：なし</span></div>
+</div>
+
+<div class="toc"><strong>目次</strong><ol><li><a href="#s1">特権IDとは</a></li><li><a href="#s2">なぜ狙われるのか</a></li><li><a href="#s3">よくある管理不備</a></li><li><a href="#s4">PAMの4つの柱</a></li><li><a href="#s5">CyberArkの立ち位置</a></li><li><a href="#review">振り返り問題</a></li></ol></div>
+
+<h2 id="s1">1. 特権IDとは</h2>
+<p><strong>特権ID（特権アカウント）</strong>とは、システムの設定変更、全データの閲覧・削除、他ユーザーの作成など、<mark>通常ユーザーにはできない強い操作ができるアカウント</mark>のことです。</p>
+
+<div class="callout analogy"><span class="ttl">ビルの「マスターキー」</span>
+<p>オフィスビルでは、社員は自分のフロアの鍵しか持ちません。しかし管理会社は<strong>全フロア・全部屋を開けられるマスターキー</strong>を持っています。マスターキーが盗まれたら、ビル中のどこにでも入られてしまいます。特権IDはITシステムにおけるマスターキーです。</p>
+</div>
+
+<div class="table-wrap"><table>
+<thead><tr><th>分類</th><th>具体例</th><th>使う人／もの</th></tr></thead>
+<tbody>
+<tr><td>OSの管理者</td><td>Linuxの <code>root</code>、Windowsのローカル <code>Administrator</code></td><td>サーバ管理者</td></tr>
+<tr><td>ディレクトリ管理者</td><td>Active Directoryの Domain Admins メンバー</td><td>AD管理者</td></tr>
+<tr><td>データベース管理者</td><td>Oracleの <code>SYS</code> / <code>SYSTEM</code>、SQL Serverの <code>sa</code></td><td>DBA</td></tr>
+<tr><td>ネットワーク機器</td><td>ルータ・スイッチ・ファイアウォールの管理者（enable等）</td><td>ネットワーク担当</td></tr>
+<tr><td>クラウド</td><td>AWSのルートユーザー、Azureのグローバル管理者、IAMの管理者ロール</td><td>クラウド担当</td></tr>
+<tr><td>アプリケーション</td><td>アプリがDBに接続するためのサービスアカウント、APIキー、SSH鍵</td><td><strong>人ではなくプログラム</strong></td></tr>
+<tr><td>SaaS管理者</td><td>業務SaaSの管理者アカウント</td><td>SaaS管理者</td></tr>
+</tbody></table></div>
+
+<div class="callout key"><span class="ttl">「人」だけでなく「機械」も特権IDを持つ</span>
+<p>アプリケーションやスクリプト、CI/CDパイプラインが使うパスワード・キー（<strong>シークレット</strong>）も特権IDです。近年は人より機械のIDの方が圧倒的に多いと言われ、CyberArkも第13章で学ぶ「シークレット管理」に力を入れています。</p>
+</div>
+
+<h2 id="s2">2. なぜ特権IDが狙われるのか</h2>
+<p>多くのサイバー攻撃は「最初に侵入した端末」だけでは目的（情報窃取・ランサムウェア展開）を達成できません。攻撃者は<strong>特権IDを手に入れて権限を広げ</strong>、目的のサーバへ移動します。下の図でSTEPを切り替えて流れを追ってください。</p>
+
+<figure class="flow">
+<div class="flow-head"><span class="flow-title">図1-1：特権IDを狙った典型的な攻撃の流れ</span></div>
+<script class="dg" type="application/json">
+{"w":800,"h":300,
+"nodes":[
+{"id":"atk","x":10,"y":120,"w":100,"h":60,"label":"攻撃者","kind":"threat","s":[1]},
+{"id":"pc","x":180,"y":120,"w":140,"h":60,"label":"社員PC","sub":"フィッシングで感染","kind":"user","s":[1,2]},
+{"id":"cred","x":370,"y":20,"w":160,"h":60,"label":"管理者パスワード","sub":"メモリ・ファイルから窃取","kind":"vault","s":[2,3]},
+{"id":"srv","x":370,"y":220,"w":160,"h":60,"label":"他のサーバ群","sub":"同じパスワードで侵入","kind":"target","s":[3,4]},
+{"id":"dc","x":620,"y":120,"w":160,"h":60,"label":"ドメイン管理者\n／基幹DB","kind":"threat","s":[4,5]}],
+"edges":[
+{"from":"atk","to":"pc","label":"①侵入","ly":-12,"s":[1]},
+{"from":"pc","to":"cred","label":"②資格情報の窃取","s":[2]},
+{"from":"cred","to":"srv","label":"③横展開","s":[3]},
+{"from":"srv","to":"dc","label":"④権限昇格","s":[4]},
+{"from":"dc","to":"atk","label":"⑤情報窃取・暗号化","dashed":true,"curve":-120,"s":[5]}]}
+</script>
+<ol class="flow-desc">
+<li data-label="侵入">攻撃者はフィッシングメールなどで、まず<strong>一般社員のPC</strong>に入り込みます。この時点では一般ユーザーの権限しかありません。</li>
+<li data-label="資格情報の窃取">PC内のメモリ、設定ファイル、スクリプト、ブラウザなどから<strong>管理者のパスワードやハッシュ</strong>を探します。管理者がこのPCに一度でもログインしていたり、スクリプトにパスワードが平文で書かれていたりすると、ここで盗まれます。</li>
+<li data-label="横展開">盗んだ管理者パスワードが<strong>他のサーバでも同じ</strong>（使い回し・何年も変更なし）なら、次々と別サーバへ移動できます。これを<strong>ラテラルムーブメント（横展開）</strong>と呼びます。</li>
+<li data-label="権限昇格">移動先でさらに強い特権ID（ドメイン管理者など）を見つけ、最終的に組織全体を支配できる権限を得ます。</li>
+<li data-label="目的達成">基幹データを盗み出したり、全サーバにランサムウェアを配布したりします。<strong>特権IDさえ守られていれば、②〜④のどこかで攻撃を止められた</strong>可能性が高いのです。</li>
+</ol>
+</figure>
+
+<div class="point-box">
+  <div class="big">🎯</div>
+  <div><p class="one">PAMの目的は「盗まれにくくする」「盗まれても使えなくする」「使われたらすぐ気づく」の3つ。</p>
+  <p class="small muted">CyberArkの機能はすべてこの3つのどれか（または複数）に対応しています。</p></div>
+</div>
+
+<h2 id="s3">3. よくある特権IDの管理不備</h2>
+<div class="grid-2">
+<div class="card"><h4>😱 共有と使い回し</h4><p class="small">「rootのパスワードはみんな知っている」「全サーバのAdministratorが同じ」。誰が使ったか追えず、1台漏れれば全滅します。</p></div>
+<div class="card"><h4>📝 Excel・付箋管理</h4><p class="small">パスワード一覧表がファイルサーバに置かれている。ファイル1つ盗まれるだけで終わりです。</p></div>
+<div class="card"><h4>⏳ 何年も変更しない</h4><p class="small">退職者や委託先が昔のパスワードを知ったままになり、いつでもログインできてしまいます。</p></div>
+<div class="card"><h4>👀 操作の記録がない</h4><p class="small">障害や情報漏えいが起きても「誰が何をしたか」がわからず、原因究明も再発防止もできません。</p></div>
+<div class="card"><h4>💻 コードに埋め込み</h4><p class="small">アプリの設定ファイルやスクリプトにDBパスワードが平文で書かれ、Git等で拡散します。</p></div>
+<div class="card"><h4>♾ 常に強い権限</h4><p class="small">必要なときだけでなく、いつでも特権を持っている状態（常設特権）は、盗まれたときの被害が最大化します。</p></div>
+</div>
+
+<h2 id="s4">4. PAMの4つの柱</h2>
+<p>PAM（Privileged Access Management：特権アクセス管理）は、上の不備をまとめて解決する考え方です。本教材では次の4本の柱で整理します。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>柱</th><th>何をするか</th><th>CyberArkの主な機能（後の章）</th></tr></thead>
+<tbody>
+<tr><td><strong>① 保管（Vault）</strong></td><td>特権の資格情報を1か所の堅牢な金庫に集め、暗号化して保管する</td><td>Digital Vault、Safe（第4・6章）</td></tr>
+<tr><td><strong>② 制御（Control）</strong></td><td>誰が・いつ・どのアカウントを使えるかを権限と承認で制御する</td><td>Safe権限、Master Policy、二重承認（第6・9章）</td></tr>
+<tr><td><strong>③ 監視（Monitor）</strong></td><td>使った操作を記録・録画し、危険な振る舞いを検知する</td><td>PSM、監査ログ、PTA（第10・12章）</td></tr>
+<tr><td><strong>④ 自動化（Rotate）</strong></td><td>パスワードを定期的・利用後に自動で変更し、漏れても使えなくする</td><td>CPM（第8章）</td></tr>
+</tbody></table></div>
+
+<div class="callout analogy"><span class="ttl">ホテルの客室キー管理</span>
+<p>ホテルではフロント（<strong>金庫＝保管</strong>）がカードキーを管理し、宿泊者本人だけに（<strong>制御</strong>）、滞在期間だけ有効なキーを渡します。廊下には防犯カメラ（<strong>監視</strong>）があり、チェックアウトするとキーは自動で無効化されて次の客用に作り直されます（<strong>自動化</strong>）。PAMはこれをITの特権IDに対して行います。</p>
+</div>
+
+<h2 id="s5">5. CyberArkの立ち位置</h2>
+<p>CyberArkはPAM分野を代表するベンダーの1つで、Digital Vaultを中心とした特権アクセス管理製品から出発し、現在は人・機械・AIエージェントのIDを対象とした<strong>アイデンティティセキュリティ</strong>全体へ製品群を広げています。2026年2月にPalo Alto Networksによる買収が完了しており、製品群の全体像は第2章で学びます。</p>
+
+<div class="callout tip"><span class="ttl">新人が最初に覚える言い回し</span>
+<p>お客様や他部署に説明するときは「CyberArkは、特権IDのパスワードを<strong>金庫で預かり</strong>、<strong>必要な人だけに使わせ</strong>、<strong>使った操作を録画し</strong>、<strong>パスワードを自動で変える</strong>製品です」と言えばまず伝わります。</p>
+</div>
+
+<section class="review" id="review">
+<h2>振り返り問題（第1章）</h2>
+<p class="small muted">章末問題は固定順です。選択肢をクリックすると正誤と解説が表示されます。</p>
+
+<div class="rq" data-correct="2"><p class="rq-q">Q1. 次のうち「特権ID」に<strong>当てはまらない</strong>ものはどれ？</p>
+<ul class="rq-opts"><li>Linuxサーバのroot</li><li>アプリがDB接続に使うサービスアカウント</li><li>社員が自分のメールを読むためだけの一般ユーザーアカウント</li><li>AWSのルートユーザー</li></ul>
+<div class="rq-exp">一般ユーザーアカウントは特権IDではありません。アプリのサービスアカウントのように<strong>「人以外」が使うアカウントも特権ID</strong>である点に注意しましょう。</div></div>
+
+<div class="rq" data-correct="1"><p class="rq-q">Q2. 盗んだ管理者パスワードを使って、攻撃者が他のサーバへ次々と移動することを何と呼ぶ？</p>
+<ul class="rq-opts"><li>フィッシング</li><li>ラテラルムーブメント（横展開）</li><li>DDoS</li><li>SQLインジェクション</li></ul>
+<div class="rq-exp">ラテラルムーブメントです。パスワードの使い回しや長期間の未変更があると、横展開が容易になります。</div></div>
+
+<div class="rq" data-correct="3"><p class="rq-q">Q3. 「パスワードを定期的・利用後に自動で変更し、漏れても使えなくする」はPAMの4つの柱のどれ？</p>
+<ul class="rq-opts"><li>保管</li><li>制御</li><li>監視</li><li>自動化</li></ul>
+<div class="rq-exp">自動化（ローテーション）です。CyberArkでは主にCPMが担当します（第8章）。</div></div>
+
+<div class="rq" data-correct="0"><p class="rq-q">Q4. PAMの目的として本章で挙げた3つに<strong>含まれない</strong>ものは？</p>
+<ul class="rq-opts"><li>特権IDの数を増やして作業を分散させる</li><li>盗まれにくくする</li><li>盗まれても使えなくする</li><li>使われたらすぐ気づく</li></ul>
+<div class="rq-exp">特権IDをむやみに増やすことは攻撃対象を増やすだけです。PAMは「盗まれにくく・盗まれても使えなく・使われたら気づく」を目指します。</div></div>
+</section>
+
+</div></main>
+<script src="../assets/app.js"></script>
+</body>
+</html>
